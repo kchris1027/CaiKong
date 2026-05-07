@@ -1,0 +1,1447 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>业内通识框架对照 · Combat Design Codex</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Noto+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet" />
+<style>
+  /* ============== TOKENS ============== */
+  :root {
+    --bg: #0e1014;
+    --bg-elev: #15181f;
+    --bg-card: #181c24;
+    --surface-line: #2a2e38;
+    --ink: #e8e2d2;
+    --ink-soft: #b8b1a0;
+    --ink-mute: #7a7464;
+    --amber: #d9a441;
+    --amber-bright: #f0c068;
+    --teal: #6ab1aa;
+    --rust: #c4623a;
+    --crimson: #b94a3a;
+    --grid: rgba(217, 164, 65, 0.08);
+    --bracket: #d9a441;
+    --serif: 'Fraunces', 'Noto Serif SC', 'Songti SC', serif;
+    --sans: 'IBM Plex Sans', 'Noto Sans SC', 'PingFang SC', sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', monospace;
+  }
+
+  /* ============== RESET ============== */
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-weight: 300;
+    line-height: 1.65;
+    font-size: 15px;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ============== ATMOSPHERE ============== */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    background:
+      radial-gradient(circle at 18% 12%, rgba(217,164,65,0.07), transparent 45%),
+      radial-gradient(circle at 82% 88%, rgba(106,177,170,0.05), transparent 50%);
+  }
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2;
+    opacity: 0.4;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.85 0 0 0 0 0.78 0 0 0 0 0.62 0 0 0 0.18 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+
+  /* ============== TOP BAR ============== */
+  .codex-bar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    backdrop-filter: blur(8px);
+    background: rgba(14, 16, 20, 0.85);
+    border-bottom: 1px solid var(--surface-line);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 32px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: var(--ink-mute);
+    text-transform: uppercase;
+  }
+  .codex-bar .left { display: flex; gap: 18px; align-items: center; }
+  .codex-bar .dot {
+    width: 7px; height: 7px;
+    background: var(--amber);
+    box-shadow: 0 0 10px var(--amber);
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.3; transform: scale(0.8); }
+  }
+  .codex-bar a {
+    color: var(--ink-soft);
+    text-decoration: none;
+    transition: color .2s;
+  }
+  .codex-bar a:hover { color: var(--amber); }
+  .codex-bar nav { display: flex; gap: 26px; }
+
+  /* ============== LAYOUT ============== */
+  main {
+    position: relative;
+    z-index: 10;
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 0 56px 120px;
+  }
+
+  /* ============== HERO ============== */
+  .hero {
+    padding: 110px 0 80px;
+    position: relative;
+    border-bottom: 1px solid var(--surface-line);
+  }
+  .hero-meta {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    color: var(--ink-mute);
+    text-transform: uppercase;
+    margin-bottom: 36px;
+    display: flex;
+    gap: 14px;
+    align-items: center;
+  }
+  .hero-meta .sep { color: var(--amber); }
+  .hero h1 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-style: italic;
+    font-size: clamp(54px, 9vw, 128px);
+    line-height: 0.92;
+    letter-spacing: -0.02em;
+    margin: 0 0 28px;
+    color: var(--ink);
+  }
+  .hero h1 .accent {
+    color: var(--amber);
+    font-style: normal;
+    font-weight: 600;
+  }
+  .hero h1 .small {
+    display: block;
+    font-size: 0.42em;
+    font-style: normal;
+    font-weight: 300;
+    color: var(--ink-soft);
+    letter-spacing: 0.12em;
+    margin-top: 16px;
+    text-transform: uppercase;
+    font-family: var(--mono);
+  }
+  .hero-grid {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 80px;
+    margin-top: 72px;
+    align-items: start;
+  }
+  .hero-abstract {
+    border-left: 2px solid var(--amber);
+    padding: 4px 0 4px 28px;
+  }
+  .hero-abstract p {
+    font-family: var(--serif);
+    font-size: 19px;
+    line-height: 1.55;
+    color: var(--ink);
+    margin: 0 0 20px;
+    font-weight: 300;
+  }
+  .hero-abstract p:last-child { margin-bottom: 0; color: var(--ink-soft); font-size: 16px; font-style: italic; }
+
+  .hero-stance {
+    background: var(--bg-card);
+    border: 1px solid var(--surface-line);
+    padding: 32px;
+    position: relative;
+  }
+  .hero-stance::before, .hero-stance::after,
+  .hero-stance .corner-tl, .hero-stance .corner-bl {
+    position: absolute;
+    width: 14px; height: 14px;
+    border: 1.5px solid var(--amber);
+  }
+  .hero-stance::before { top: -1px; right: -1px; border-left: 0; border-bottom: 0; }
+  .hero-stance::after  { bottom: -1px; left: -1px; border-right: 0; border-top: 0; }
+  .hero-stance .corner-tl { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+  .hero-stance .corner-bl { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+  .hero-stance h3 {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    color: var(--amber);
+    text-transform: uppercase;
+    margin: 0 0 18px;
+    font-weight: 500;
+  }
+  .hero-stance .stance-text {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 22px;
+    line-height: 1.4;
+    color: var(--ink);
+    margin: 0 0 22px;
+    font-weight: 400;
+  }
+  .hero-stance ul {
+    margin: 0; padding: 0; list-style: none;
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+  .hero-stance li {
+    padding: 9px 0;
+    border-top: 1px dashed var(--surface-line);
+    display: flex;
+    gap: 14px;
+  }
+  .hero-stance li .tag {
+    font-family: var(--mono);
+    color: var(--amber);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    flex-shrink: 0;
+    width: 80px;
+  }
+
+  /* ============== SECTION SCAFFOLD ============== */
+  .section {
+    padding: 110px 0 30px;
+    position: relative;
+  }
+  .section-head {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: 60px;
+    margin-bottom: 70px;
+    align-items: end;
+  }
+  .section-num {
+    font-family: var(--mono);
+    color: var(--amber);
+    font-size: 12px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    border-top: 1.5px solid var(--amber);
+    padding-top: 14px;
+    align-self: start;
+  }
+  .section-num .big {
+    display: block;
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 300;
+    color: var(--ink);
+    font-size: 56px;
+    line-height: 1;
+    margin-top: 12px;
+    letter-spacing: -0.02em;
+  }
+  .section-title h2 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(36px, 4.5vw, 56px);
+    line-height: 1.05;
+    letter-spacing: -0.015em;
+    margin: 0 0 18px;
+  }
+  .section-title h2 em {
+    color: var(--amber);
+    font-style: italic;
+    font-weight: 500;
+  }
+  .section-title .sub {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 19px;
+    color: var(--ink-soft);
+    line-height: 1.5;
+    max-width: 60ch;
+  }
+
+  /* ============== TABLE: WHY EXTERNAL ============== */
+  .why-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 30px;
+    font-size: 14px;
+  }
+  .why-table th, .why-table td {
+    padding: 16px 20px;
+    text-align: left;
+    border-bottom: 1px solid var(--surface-line);
+  }
+  .why-table thead th {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--amber);
+    border-bottom: 1.5px solid var(--amber);
+    font-weight: 500;
+  }
+  .why-table tbody tr:hover { background: rgba(217,164,65,0.04); }
+  .why-table .check { color: var(--teal); font-weight: 500; font-family: var(--mono); }
+  .why-table .x { color: var(--rust); font-weight: 500; font-family: var(--mono); }
+  .why-table .warn { color: var(--amber); font-weight: 500; font-family: var(--mono); }
+  .why-table .scenario { font-family: var(--serif); font-weight: 500; font-size: 15px; color: var(--ink); }
+
+  .one-liner {
+    margin-top: 38px;
+    padding: 22px 28px;
+    background: linear-gradient(90deg, rgba(217,164,65,0.08), transparent);
+    border-left: 3px solid var(--amber);
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 19px;
+    color: var(--ink);
+  }
+  .one-liner strong { color: var(--amber); font-style: normal; font-weight: 600; letter-spacing: 0.04em; font-family: var(--mono); font-size: 13px; margin-right: 12px; vertical-align: 1px; }
+
+  /* ============== CORE FRAMEWORK CARDS ============== */
+  .cores {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 28px;
+  }
+  .core {
+    position: relative;
+    background: var(--bg-card);
+    border: 1px solid var(--surface-line);
+    padding: 36px 36px 32px;
+    transition: border-color .3s, transform .3s;
+  }
+  .core::before, .core::after {
+    content: "";
+    position: absolute;
+    width: 18px; height: 18px;
+    border: 1.5px solid var(--amber);
+    transition: width .3s, height .3s;
+  }
+  .core::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+  .core::after  { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+  .core:hover { border-color: var(--amber); transform: translateY(-3px); }
+  .core:hover::before, .core:hover::after { width: 28px; height: 28px; }
+
+  .core-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--amber);
+    letter-spacing: 0.2em;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+  }
+  .core h3 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 32px;
+    line-height: 1.1;
+    margin: 0 0 8px;
+    letter-spacing: -0.01em;
+  }
+  .core h3 .ch { color: var(--ink); font-style: italic; font-weight: 400; }
+  .core .tag-line {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-mute);
+    letter-spacing: 0.06em;
+    margin-bottom: 22px;
+  }
+  .core .origin {
+    font-size: 13px;
+    color: var(--ink-soft);
+    line-height: 1.55;
+    margin-bottom: 22px;
+    padding-bottom: 22px;
+    border-bottom: 1px dashed var(--surface-line);
+  }
+  .core .origin strong { color: var(--ink); font-weight: 500; }
+  .core .insight-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 10px;
+  }
+  .core .insight {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 17px;
+    line-height: 1.5;
+    color: var(--ink);
+    font-weight: 400;
+    margin-bottom: 24px;
+  }
+  .core .map {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--surface-line);
+  }
+  .core .map-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    padding: 8px 0;
+    font-size: 13px;
+    border-bottom: 1px dotted var(--surface-line);
+  }
+  .core .map-row:last-child { border-bottom: 0; }
+  .core .map-row .from {
+    font-family: var(--mono);
+    color: var(--amber);
+    font-size: 12px;
+    letter-spacing: 0.04em;
+  }
+  .core .map-row .to {
+    color: var(--ink-soft);
+    font-size: 13px;
+  }
+  .core .scene {
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px solid var(--surface-line);
+    font-size: 12px;
+    color: var(--ink-mute);
+    line-height: 1.6;
+    font-style: italic;
+  }
+  .core .scene strong {
+    display: block;
+    font-style: normal;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    color: var(--ink-soft);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+
+  /* ============== OODA ASCII LOOP ============== */
+  .ooda-loop {
+    margin: 22px 0;
+    padding: 18px;
+    background: rgba(14, 16, 20, 0.6);
+    border: 1px solid var(--surface-line);
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--teal);
+    line-height: 1.7;
+    white-space: pre-wrap;
+    overflow-x: auto;
+  }
+  .ooda-loop .label { color: var(--amber); font-weight: 500; }
+  .ooda-loop .arrow { color: var(--ink-mute); }
+
+  /* ============== INTERMEDIATE FRAMEWORKS ============== */
+  .mid-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1px;
+    background: var(--surface-line);
+    border: 1px solid var(--surface-line);
+  }
+  .mid {
+    background: var(--bg-elev);
+    padding: 32px;
+    transition: background .3s;
+    position: relative;
+  }
+  .mid:hover { background: var(--bg-card); }
+  .mid-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--amber);
+    letter-spacing: 0.2em;
+    margin-bottom: 12px;
+  }
+  .mid h4 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 24px;
+    line-height: 1.2;
+    margin: 0 0 6px;
+    letter-spacing: -0.005em;
+  }
+  .mid h4 .ch { color: var(--ink-soft); font-weight: 400; font-style: italic; font-size: 18px; display: block; margin-top: 4px; }
+  .mid .lead {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--ink-soft);
+    margin: 18px 0 16px;
+  }
+  .mid .pair {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-mute);
+    border-top: 1px dashed var(--surface-line);
+    padding-top: 14px;
+    margin-top: 18px;
+  }
+  .mid .pair strong { color: var(--amber); font-weight: 500; }
+  .mid .scene-mini {
+    margin-top: 14px;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--ink-mute);
+    font-style: italic;
+  }
+
+  /* ============== REACTION WINDOW VISUAL ============== */
+  .reaction-vis {
+    margin: 20px 0 18px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--surface-line);
+    border: 1px solid var(--surface-line);
+  }
+  .reaction-vis .rw {
+    background: var(--bg-elev);
+    padding: 12px;
+    text-align: center;
+    font-size: 11px;
+  }
+  .reaction-vis .rw .num {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 22px;
+    color: var(--amber);
+    display: block;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .reaction-vis .rw .lab {
+    font-family: var(--mono);
+    color: var(--ink-mute);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-size: 9px;
+  }
+
+  /* ============== CROSS REFERENCE TABLE ============== */
+  .xref {
+    overflow-x: auto;
+    margin-top: 20px;
+    border: 1px solid var(--surface-line);
+    background: var(--bg-card);
+  }
+  .xref table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    table-layout: fixed;
+  }
+  .xref col.col-fw   { width: 56%; }
+  .xref col.col-when { width: 44%; }
+  .xref th, .xref td {
+    padding: 22px 28px;
+    text-align: left;
+    border-bottom: 1px solid var(--surface-line);
+    vertical-align: middle;
+  }
+  .xref thead th {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--amber);
+    border-bottom: 1.5px solid var(--amber);
+    font-weight: 500;
+    background: var(--bg-elev);
+    padding-top: 16px;
+    padding-bottom: 16px;
+  }
+  .xref tbody tr { transition: background .25s; }
+  .xref tbody tr:hover { background: rgba(217,164,65,0.04); }
+  .xref tbody tr:hover .fw-name { color: var(--amber-bright); }
+
+  .fw-name {
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 500;
+    font-size: 22px;
+    line-height: 1.15;
+    color: var(--amber);
+    letter-spacing: -0.005em;
+    margin-bottom: 10px;
+    transition: color .25s;
+  }
+  .fw-note {
+    font-family: var(--sans);
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--ink-soft);
+    max-width: 44ch;
+  }
+  .fw-note .tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    color: var(--ink-mute);
+    text-transform: uppercase;
+    margin-right: 8px;
+    border: 1px solid var(--surface-line);
+    padding: 2px 7px;
+    vertical-align: 1px;
+  }
+  .xref .timing {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 17px;
+    line-height: 1.5;
+    color: var(--ink);
+    letter-spacing: -0.005em;
+    position: relative;
+    padding-left: 38px;
+    transition: color .25s;
+  }
+  .xref .timing::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 26px;
+    height: 1.5px;
+    background: var(--amber);
+    opacity: 0.65;
+    transition: width .3s ease, opacity .3s, box-shadow .3s;
+  }
+  .xref tbody tr:hover .timing { color: var(--amber-bright); }
+  .xref tbody tr:hover .timing::before {
+    width: 34px;
+    opacity: 1;
+    box-shadow: 0 0 10px rgba(217, 164, 65, 0.45);
+  }
+
+  /* ============== CASES ============== */
+  .case-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 32px;
+  }
+  .case {
+    border: 1px solid var(--surface-line);
+    padding: 40px;
+    background:
+      linear-gradient(180deg, var(--bg-card), var(--bg-elev));
+    position: relative;
+  }
+  .case-stamp {
+    position: absolute;
+    top: 26px;
+    right: 26px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    color: var(--rust);
+    border: 1px solid var(--rust);
+    padding: 4px 10px;
+    text-transform: uppercase;
+  }
+  .case-tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    color: var(--amber);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .case h3 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-style: italic;
+    font-size: 28px;
+    line-height: 1.15;
+    margin: 0 0 24px;
+    letter-spacing: -0.01em;
+    max-width: 80%;
+  }
+  .case .phase {
+    margin-bottom: 24px;
+    padding-bottom: 22px;
+    border-bottom: 1px dashed var(--surface-line);
+  }
+  .case .phase:last-of-type { border-bottom: 0; padding-bottom: 0; margin-bottom: 0; }
+  .case .phase h5 {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: var(--amber);
+    text-transform: uppercase;
+    margin: 0 0 14px;
+    font-weight: 500;
+  }
+  .case .phase p {
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--ink-soft);
+    margin: 0 0 12px;
+  }
+  .case .phase p:last-child { margin-bottom: 0; }
+  .case strong { color: var(--ink); font-weight: 500; }
+  .case-takeaway {
+    margin-top: 28px;
+    padding: 20px 22px;
+    background: rgba(14,16,20,0.5);
+    border-left: 2px solid var(--amber);
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--ink);
+  }
+
+  /* ============== BLIND-SPOT PANEL ============== */
+  .blindspot-board {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 56px;
+    align-items: start;
+  }
+  .blindspot-status {
+    background: var(--bg-card);
+    border: 1px solid var(--surface-line);
+    padding: 32px;
+    position: relative;
+  }
+  .blindspot-status::before {
+    content: "STATUS";
+    position: absolute;
+    top: -10px; left: 24px;
+    background: var(--bg);
+    padding: 2px 10px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    color: var(--amber);
+  }
+  .blindspot-status .number {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 84px;
+    line-height: 1;
+    color: var(--amber);
+    margin-bottom: 8px;
+  }
+  .blindspot-status .label {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+  .blindspot-status p {
+    font-size: 13px;
+    line-height: 1.65;
+    color: var(--ink-soft);
+    margin: 0 0 14px;
+  }
+  .blindspot-status .stamp {
+    margin-top: 18px;
+    padding: 10px 14px;
+    border: 1px dashed var(--teal);
+    color: var(--teal);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-align: center;
+  }
+
+  .blindspot-list .group {
+    margin-bottom: 36px;
+  }
+  .blindspot-list .group h4 {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    color: var(--amber);
+    text-transform: uppercase;
+    margin: 0 0 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--surface-line);
+  }
+  .blindspot-row {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1.2fr;
+    gap: 24px;
+    padding: 14px 0;
+    border-bottom: 1px dotted var(--surface-line);
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .blindspot-row .what { color: var(--ink); font-family: var(--serif); }
+  .blindspot-row .src { color: var(--ink-mute); font-family: var(--mono); font-size: 12px; }
+  .blindspot-row .by { color: var(--teal); font-size: 13px; }
+  .blindspot-row .by::before { content: "✓ "; font-family: var(--mono); margin-right: 4px; }
+
+  /* ============== ELEVEN DIMENSIONS ============== */
+  .dims {
+    margin-top: 56px;
+  }
+  .dims-head {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    color: var(--amber);
+    text-transform: uppercase;
+    margin-bottom: 22px;
+  }
+  .dims-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--surface-line);
+    border: 1px solid var(--surface-line);
+  }
+  .dim {
+    background: var(--bg-elev);
+    padding: 22px 20px;
+    transition: background .3s;
+  }
+  .dim:hover { background: var(--bg-card); }
+  .dim .axis {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    color: var(--amber);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .dim h5 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 17px;
+    margin: 0 0 6px;
+    color: var(--ink);
+    line-height: 1.2;
+  }
+  .dim .date {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-mute);
+  }
+  .dim.spine {
+    background: linear-gradient(180deg, rgba(217,164,65,0.15), rgba(217,164,65,0.05));
+    border-left: 2px solid var(--amber);
+  }
+  .dim.spine .axis { color: var(--amber-bright); }
+
+  /* ============== READING PATH ============== */
+  .reading-path {
+    counter-reset: step;
+    list-style: none;
+    padding: 0;
+    margin: 30px 0 0;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+  .reading-path li {
+    counter-increment: step;
+    position: relative;
+    padding: 22px 24px 22px 76px;
+    background: var(--bg-card);
+    border-left: 2px solid var(--surface-line);
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--ink-soft);
+    transition: border-color .3s, background .3s;
+  }
+  .reading-path li::before {
+    content: counter(step, decimal-leading-zero);
+    position: absolute;
+    left: 24px;
+    top: 22px;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--amber);
+    letter-spacing: 0.06em;
+  }
+  .reading-path li:hover {
+    border-left-color: var(--amber);
+    background: rgba(217,164,65,0.04);
+  }
+  .reading-path li strong {
+    display: block;
+    font-family: var(--serif);
+    font-weight: 500;
+    color: var(--ink);
+    font-size: 16px;
+    margin-bottom: 4px;
+  }
+
+  /* ============== FOOTER ============== */
+  footer {
+    margin-top: 100px;
+    padding: 40px 0 30px;
+    border-top: 1px solid var(--surface-line);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: var(--ink-mute);
+    text-transform: uppercase;
+    flex-wrap: wrap;
+    gap: 24px;
+  }
+  footer .meta { line-height: 1.8; }
+  footer .meta strong { color: var(--ink-soft); font-weight: 400; }
+  footer .sig { font-family: var(--serif); font-style: italic; font-size: 14px; color: var(--ink-soft); letter-spacing: 0; text-transform: none; }
+
+  /* ============== REVEAL ============== */
+  .reveal {
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity .8s ease, transform .8s ease;
+  }
+  .reveal.in {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ============== RESPONSIVE ============== */
+  @media (max-width: 960px) {
+    main { padding: 0 24px 80px; }
+    .hero-grid { grid-template-columns: 1fr; gap: 48px; }
+    .section-head { grid-template-columns: 1fr; gap: 24px; }
+    .cores, .mid-grid, .case-grid, .reading-path { grid-template-columns: 1fr; }
+    .blindspot-board { grid-template-columns: 1fr; }
+    .dims-grid { grid-template-columns: repeat(2, 1fr); }
+    .blindspot-row { grid-template-columns: 1fr; gap: 6px; }
+    .codex-bar { padding: 10px 18px; flex-wrap: wrap; gap: 12px; }
+    .codex-bar nav { display: none; }
+    .reaction-vis { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============== TOP CLASSIFICATION BAR ============== -->
+<div class="codex-bar">
+  <div class="left">
+    <span class="dot"></span>
+    <span>CODEX // COMBAT-DESIGN // §IV.0</span>
+  </div>
+  <nav>
+    <a href="#why">§I 参照系</a>
+    <a href="#cores">§II 核心</a>
+    <a href="#mid">§III 中级</a>
+    <a href="#xref">§V 速查</a>
+    <a href="#cases">§案例</a>
+  </nav>
+  <div>REV · 2026.05.07</div>
+</div>
+
+<main>
+
+  <!-- ============== HERO ============== -->
+  <section class="hero">
+    <div class="hero-meta">
+      <span>DOMAIN / COMBAT</span>
+      <span class="sep">·</span>
+      <span>DOC LEVEL / PHILOSOPHY</span>
+      <span class="sep">·</span>
+      <span>SOURCE / MIXED</span>
+      <span class="sep">·</span>
+      <span>CREATED 2026-04-29</span>
+    </div>
+    <h1>
+      业内通识<br>
+      框架<span class="accent">对照</span>
+      <span class="small">An External Cross-Reference Codex of Combat Design Frameworks</span>
+    </h1>
+
+    <div class="hero-grid">
+      <div class="hero-abstract">
+        <p>本库 <span style="color: var(--amber)">顶层框架/</span> 已沉淀四篇<strong>自家方法论</strong>——它们解决"<em>如何设计</em>"。</p>
+        <p>本页是<strong>外部参照系</strong>：解决"<em>如何用业内通用语沟通、如何对照检查盲区</em>"。</p>
+        <p>业内并无一个独占"通识"地位的战斗设计顶层框架。更像从不同切面看同一头大象——本页梳理被反复引用的那几个，并标注与自家框架的对应。</p>
+      </div>
+
+      <div class="hero-stance">
+        <span class="corner-tl"></span>
+        <span class="corner-bl"></span>
+        <h3>来源口径 · Source Discipline</h3>
+        <p class="stance-text">"内部框架是工程图纸，外部框架是行业语言。两者并非二选一。"</p>
+        <ul>
+          <li><span class="tag">Type Ⅰ</span><span>原始文献 / 书籍 — MDA、Game Feel</span></li>
+          <li><span class="tag">Type Ⅱ</span><span>厂商公开语境 — Ubisoft 3C</span></li>
+          <li><span class="tag">Type Ⅲ</span><span>迁移性分析工具 — OODA、Risk-Reward</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== WHY EXTERNAL ============== -->
+  <section class="section reveal" id="why">
+    <div class="section-head">
+      <div class="section-num">
+        <span>§I — Frame</span>
+        <span class="big">01</span>
+      </div>
+      <div class="section-title">
+        <h2>为什么需要 <em>外部参照系</em></h2>
+        <p class="sub">立项内部对话，自家框架够用；但跨厂、学术、面试、技术对接——必须切到行业语言。</p>
+      </div>
+    </div>
+
+    <table class="why-table">
+      <thead>
+        <tr><th style="width: 38%">场景</th><th style="width: 22%">自家框架够用</th><th>需要外部语言</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="scenario">立项内部 Vision 锁定</td><td><span class="check">✓ 够</span></td><td><span class="x">— 不需要</span></td></tr>
+        <tr><td class="scenario">系统拆解、数值反推</td><td><span class="check">✓ 够</span></td><td><span class="x">— 不需要</span></td></tr>
+        <tr><td class="scenario">候选人面试 / 跨厂沟通</td><td><span class="warn">⚠ 对方未必懂</span></td><td><span class="check">✓ MDA · 3C</span></td></tr>
+        <tr><td class="scenario">读 GDC Talk / 学术论文</td><td><span class="warn">⚠ 术语对不上</span></td><td><span class="check">✓ MDA · Game Feel</span></td></tr>
+        <tr><td class="scenario">反向校验自家框架盲区</td><td><span class="x">✗ 不能自我审视</span></td><td><span class="check">✓ 全部</span></td></tr>
+        <tr><td class="scenario">给程序 / 技术美术讲打击感</td><td><span class="warn">⚠ "反馈层"太模糊</span></td><td><span class="check">✓ Game Feel 三支柱</span></td></tr>
+        <tr><td class="scenario">给战斗 AI / Boss 策划讲循环</td><td><span class="warn">⚠ 缺精确语言</span></td><td><span class="check">✓ OODA Loop</span></td></tr>
+      </tbody>
+    </table>
+
+    <div class="one-liner">
+      <strong>SUMMARY</strong> 内部框架是工程图纸，外部框架是行业语言——两者不是二选一。
+    </div>
+  </section>
+
+  <!-- ============== FOUR CORES ============== -->
+  <section class="section reveal" id="cores">
+    <div class="section-head">
+      <div class="section-num">
+        <span>§II — Core</span>
+        <span class="big">04</span>
+      </div>
+      <div class="section-title">
+        <h2>四个 <em>核心框架</em></h2>
+        <p class="sub">强烈建议掌握。不是"通识"——是经过厂商、学术、社区多轮淘洗后留下的最稳定四象限。</p>
+      </div>
+    </div>
+
+    <div class="cores">
+
+      <!-- MDA -->
+      <article class="core">
+        <div class="core-num">FRAMEWORK · 01 / 04</div>
+        <h3>MDA <span class="ch">机制 · 动态 · 美感</span></h3>
+        <div class="tag-line">Hunicke · LeBlanc · Zubek — AAAI 2004</div>
+        <p class="origin">学术界最常被引用的游戏设计框架之一。<strong>设计师自下而上</strong>看 M→D→A，<strong>玩家自上而下</strong>反推 A→D→M。</p>
+        <div class="insight-label">关键差异 · Key Difference</div>
+        <p class="insight">MDA 有"涌现"概念——Dynamics 是 Mechanics 跑起来后<strong>涌现</strong>的，不是设计的；本库四层模型把这一层做成了"主动设计的结构"。两者不冲突，但 MDA 提醒你：不是所有 Dynamics 都能被设计预见，需要 Playtest 反向归纳。</p>
+        <div class="map">
+          <div class="map-row"><span class="from">→ Aesthetics</span><span class="to">15_战斗体验设计目标 · 五维</span></div>
+          <div class="map-row"><span class="from">→ Dynamics</span><span class="to">战斗设计四层模型 L2 + 内外循环</span></div>
+          <div class="map-row"><span class="from">→ Mechanics</span><span class="to">L3 数值与公式层 + 系统架构</span></div>
+        </div>
+        <div class="scene"><strong>使用场景</strong>对外讲设计哲学 · 竞品逆向拆解 · 团队复盘从 A 层追溯到 M 层</div>
+      </article>
+
+      <!-- 3C -->
+      <article class="core">
+        <div class="core-num">FRAMEWORK · 02 / 04</div>
+        <h3>3C <span class="ch">Character · Camera · Control</span></h3>
+        <div class="tag-line">Ubisoft 等 3D 动作 / 冒险开发语境</div>
+        <p class="origin">对 3D ARPG 来说，它适合作为<strong>立项 Prototype 的第一层检查骨架</strong>。Ubisoft 公开资料确认 3C 用于概念阶段的体验定义。</p>
+        <div class="insight-label">三轴定义 · Three Axes</div>
+        <p class="insight"><strong>Character</strong> · 角色"占多大空间、怎么移动、怎么转身"——碰撞体、骨架、locomotion。<br><strong>Camera</strong> · 玩家"看到了什么、什么时候看不到"——跟随、锁定、构图、避障。<br><strong>Control</strong> · 玩家"想做什么 → 角色做了什么"——按键、缓冲、响应延迟、状态转移。</p>
+        <div class="map">
+          <div class="map-row"><span class="from">→ Character</span><span class="to">3D 角色物理表达 + 04_动作系统</span></div>
+          <div class="map-row"><span class="from">→ Camera</span><span class="to">战斗相机设计哲学 + 11_相机方案</span></div>
+          <div class="map-row"><span class="from">→ Control</span><span class="to">10_输入系统 + 操控忠实度</span></div>
+        </div>
+        <div class="scene"><strong>使用场景</strong>立项期 Prototype 必须先锁 3C · 评估 3D ARPG 是否"立得住" · 程序 / TA 对接</div>
+      </article>
+
+      <!-- Game Feel -->
+      <article class="core">
+        <div class="core-num">FRAMEWORK · 03 / 04</div>
+        <h3>Game Feel <span class="ch">三支柱 — Steve Swink</span></h3>
+        <div class="tag-line">《Game Feel: A Game Designer's Guide to Virtual Sensation》2009</div>
+        <p class="origin">讨论"<strong>手感 / 打击感 / juice</strong>"时最值得优先掌握的框架之一。把"重量感、惯性、空间互动"列为独立支柱——<strong>不是反馈层的附属</strong>。</p>
+        <div class="insight-label">三支柱 · Three Pillars</div>
+        <p class="insight"><strong>Real-time Control</strong> 输入与角色行为之间的时间关系——延迟、响应、缓冲、取消。<br><strong>Simulated Space</strong> 角色在世界中的物理存在感——碰撞、惯性、重量、地形。<br><strong>Polish</strong> 表现层修饰——顿帧、震屏、闪白、特效、音效，俗称 "juice"。</p>
+        <div class="map">
+          <div class="map-row"><span class="from">→ Real-time Control</span><span class="to">操控忠实度 + 10_输入系统</span></div>
+          <div class="map-row"><span class="from">→ Simulated Space</span><span class="to">战斗空间设计模型 · 距离/拓扑</span></div>
+          <div class="map-row"><span class="from">→ Polish</span><span class="to">五层框架 L4 反馈层 + 12_表现</span></div>
+        </div>
+        <div class="scene"><strong>使用场景</strong>调试手感 · 技术美术讲 juice 配比 · 横向对比《只狼》《鬼泣》《战神》Polish 配方</div>
+      </article>
+
+      <!-- OODA -->
+      <article class="core">
+        <div class="core-num">FRAMEWORK · 04 / 04</div>
+        <h3>OODA Loop <span class="ch">观察 · 解读 · 决策 · 执行</span></h3>
+        <div class="tag-line">John Boyd · 美军飞行员决策循环</div>
+        <p class="origin">不是某厂专属方法论，而是迁移到战斗设计的<strong>对抗分析工具</strong>——解释玩家"从看到信息到采取行动"的全链路。</p>
+        <div class="ooda-loop"><span class="label">Observe</span>  <span class="arrow">→</span>  看到敌人抬手 / 听到蓄力音
+<span class="label">Orient</span>   <span class="arrow">→</span>  "这是横扫，不是突刺"
+<span class="label">Decide</span>   <span class="arrow">→</span>  "我应该侧闪而非格挡"
+<span class="label">Act</span>      <span class="arrow">→</span>  按下闪避键
+       <span class="arrow">↺</span>  结果产生新的 Observe</div>
+        <p class="insight">OODA 把 <strong>Orient</strong>（解读）单独拆出——决策慢不一定是反应慢，可能是"<em>读不懂招式</em>"。同样 0.6 秒预告，<strong>辨识度不同则 Orient 时间不同</strong>。</p>
+        <div class="scene"><strong>使用场景</strong>设计 Boss 招式信号（看到 vs 看懂）· 高难度可缩短 Observe 但不应缩短 Orient · 解释二周目背板效应</div>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- ============== EIGHT MID FRAMEWORKS ============== -->
+  <section class="section reveal" id="mid">
+    <div class="section-head">
+      <div class="section-num">
+        <span>§III — Mid-Tier</span>
+        <span class="big">08</span>
+      </div>
+      <div class="section-title">
+        <h2>八个 <em>中级框架</em></h2>
+        <p class="sub">值得知道——四个核心之外的标尺、模板与诊断工具。各自解一类具体问题。</p>
+      </div>
+    </div>
+
+    <div class="mid-grid">
+
+      <article class="mid">
+        <div class="mid-num">3.1 — TEMPORAL NESTING</div>
+        <h4>Core Loop 嵌套<span class="ch">Multi-scale Loop Nesting</span></h4>
+        <p class="lead">战斗不是单一循环，而是<strong>多时间尺度循环嵌套</strong>。Micro · Meso · Macro · Meta — 四层时间标尺。</p>
+        <div style="font-family: var(--mono); font-size: 11px; line-height: 1.9; color: var(--ink-soft);">
+          <div><span style="color: var(--amber)">MICRO</span>   1–3 s    · 普攻派生 / 闪避反击</div>
+          <div><span style="color: var(--amber)">MESO</span>    30s–3min · 一波遭遇 / 单阶段</div>
+          <div><span style="color: var(--amber)">MACRO</span>   5–30min  · Boss 战 / 章节</div>
+          <div><span style="color: var(--amber)">META</span>    1–50hr   · 养成 / Build / 武器</div>
+        </div>
+        <div class="pair"><strong>本库映射</strong>　战斗内外循环 · 宏观难度节奏编排</div>
+      </article>
+
+      <article class="mid">
+        <div class="mid-num">3.2 — CURVE STACKING</div>
+        <h4>Risk-Reward / Tension-Release<span class="ch">风险-收益 / 紧张-释放</span></h4>
+        <p class="lead">两条曲线叠加：<strong>风险-收益</strong>解决"为什么愿意冒险"，<strong>紧张-释放</strong>解决"压力如何随时间组织"。</p>
+        <p class="lead" style="font-family: var(--serif); font-style: italic; color: var(--ink); font-size: 16px;">★ 设计目标：让"高风险路径的期望收益 ≥ 保守路径"，否则无人选。</p>
+        <div class="pair"><strong>本库映射</strong>　战斗遭遇结构 · Boss 战节奏 · 宏观能量曲线</div>
+      </article>
+
+      <article class="mid">
+        <div class="mid-num">3.3 — TRIANGLE BALANCE</div>
+        <h4>Combat Triangle<span class="ch">三角平衡 / 克制循环</span></h4>
+        <p class="lead">自《街霸》《魂》系列以来的老牌平衡论——格斗的"打 / 投 / 防"、魂的"攻 / 闪 / 格"、只狼的"打 / 格 / 跳"、对马的三剑型、鸣潮的元素相生相克。</p>
+        <p class="lead">差异化的最低成本工具：<strong>若三选一里有"绝对最优解"，差异化就崩了</strong>。</p>
+        <div class="pair"><strong>本库映射</strong>　克制关系设计模板 · 角色 / 武器 / 敌人差异化</div>
+      </article>
+
+      <article class="mid">
+        <div class="mid-num">3.4 — COMMITMENT COST</div>
+        <h4>Action Economy<span class="ch">动作承诺成本 · Frame Data</span></h4>
+        <p class="lead">每个动作可拆为<strong>投入 · 命中 · 收回 · 改判</strong>四类成本——动作游戏调手感最常用的执行层语言。</p>
+        <div style="font-family: var(--mono); font-size: 11px; line-height: 1.9; color: var(--ink-soft); margin: 14px 0;">
+          <div><span style="color: var(--amber)">STARTUP</span>    起手 / 前摇</div>
+          <div><span style="color: var(--amber)">ACTIVE</span>     有效帧 / 命中窗口</div>
+          <div><span style="color: var(--amber)">RECOVERY</span>   收招 / 后摇</div>
+          <div><span style="color: var(--amber)">CANCEL</span>     取消 / 缓冲</div>
+          <div><span style="color: var(--amber)">FRAME ADV</span>  帧优势</div>
+        </div>
+        <p class="lead" style="font-family: var(--serif); font-style: italic; color: var(--ink); font-size: 15px;">动作游戏的"爽"不只是响应快，而是<strong>承诺成本可理解、可预期、可利用</strong>。</p>
+        <div class="pair"><strong>本库映射</strong>　帧数据统一模型 · 动作系统 · 取消机制</div>
+      </article>
+
+      <article class="mid">
+        <div class="mid-num">3.5 — SIGNAL LANGUAGE</div>
+        <h4>Affordance / Signposting<span class="ch">可感知性 · 可读性</span></h4>
+        <p class="lead">来自 HCI / 交互设计——迁移到战斗后，主要解决"<strong>玩家能不能看出自己该做什么</strong>"。</p>
+        <p class="lead" style="font-family: var(--serif); font-style: italic; color: var(--ink); font-size: 15px;">OODA 解释玩家内部流程；Affordance / Signposting 解释<strong>系统如何帮助玩家完成 Observe 和 Orient</strong>。高难度可以惩罚错误决策，但不应让玩家输在"完全看不懂"。</p>
+        <div class="pair"><strong>本库映射</strong>　信号语言与可读性 · 12_表现 · 13_UI · 信息可读性</div>
+      </article>
+
+      <article class="mid">
+        <div class="mid-num">3.6 — FLOW STATE</div>
+        <h4>Challenge-Skill / Flow<span class="ch">挑战-技能匹配 · 难度曲线</span></h4>
+        <p class="lead">Csikszentmihalyi 的 Flow 理论被借用为<strong>难度与学习曲线的校验工具</strong>。Boredom · Anxiety · Flow Channel · Mastery 四象限。</p>
+        <p class="lead" style="font-family: var(--serif); font-style: italic; color: var(--ink); font-size: 15px;">好的战斗难度不是"刚好不卡人"，而是<strong>让玩家失败后知道自己差在哪里</strong>。</p>
+        <div class="pair"><strong>本库映射</strong>　难度曲线与挑战-技能匹配 · Skill Atom / Skill Chain DAG</div>
+      </article>
+
+      <article class="mid">
+        <div class="mid-num">3.7 — MILLISECOND ANCHOR</div>
+        <h4>Reaction Window Theory<span class="ch">反应窗口 · 量化标尺</span></h4>
+        <p class="lead">来自认知心理学与格斗社区交叉地带——所有"玩家需要在多少时间内响应"的<strong>定量标尺</strong>。</p>
+        <div class="reaction-vis">
+          <div class="rw"><span class="num">~200<span style="font-size: 13px;">ms</span></span><span class="lab">Simple RT</span></div>
+          <div class="rw"><span class="num">~350<span style="font-size: 13px;">ms</span></span><span class="lab">Choice RT</span></div>
+          <div class="rw"><span class="num">~300<span style="font-size: 13px;">ms</span></span><span class="lab">Recognition</span></div>
+          <div class="rw"><span class="num">~50<span style="font-size: 13px;">ms</span></span><span class="lab">Prediction</span></div>
+        </div>
+        <p class="lead" style="font-size: 13px; margin-top: 6px;">★ <strong>200ms / 12 帧</strong>是动作游戏的"可反应性"基准。低于此阈值——你在考验<em>反应力</em>还是<em>学习/预测</em>？</p>
+        <div class="pair"><strong>本库映射</strong>　战斗信息识别 · 帧数据统一模型 · 操控忠实度</div>
+      </article>
+
+      <article class="mid">
+        <div class="mid-num">3.8 — COGNITIVE LIMIT</div>
+        <h4>Hick's Law / Cognitive Load<span class="ch">选择反应时 · 认知负荷</span></h4>
+        <p class="lead"><strong>RT = a + b · log₂(n + 1)</strong> — 选项越多，决策越对数级变慢。工作记忆容量 3–5 块——超载时信号会被遗漏。</p>
+        <p class="lead" style="font-family: var(--serif); font-style: italic; color: var(--ink); font-size: 15px;">★ 设计原则：<strong>降低外在负荷</strong>（UI 干净）<strong>· 管理内在负荷</strong>（不要同时监控 6 种资源）<strong>· 保护相关负荷</strong>（保留招式学习空间）。</p>
+        <div class="pair"><strong>本库映射</strong>　信号语言 · 13_UI · 战斗资源经济与轮转</div>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- ============== CROSS REFERENCE TABLE ============== -->
+  <section class="section reveal" id="xref">
+    <div class="section-head">
+      <div class="section-num">
+        <span>§V — Lookup</span>
+        <span class="big">⇄</span>
+      </div>
+      <div class="section-title">
+        <h2>对照 <em>速查表</em></h2>
+        <p class="sub">当前在和谁沟通 / 解决什么问题——切到哪套语言。</p>
+      </div>
+    </div>
+
+    <div class="xref">
+      <table>
+        <colgroup>
+          <col class="col-fw">
+          <col class="col-when">
+        </colgroup>
+        <thead>
+          <tr>
+            <th>业内框架 · External Framework</th>
+            <th>切换时机 · When to Switch</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <div class="fw-name">MDA</div>
+              <div class="fw-note"><span class="tag">Reverse Mirror</span>分层模型的反向镜像 — 业内多了"涌现"概念,提醒你不是所有 Dynamics 都能被设计预见。</div>
+            </td>
+            <td class="timing">学术沟通 / 跨厂讨论</td>
+          </tr>
+          <tr>
+            <td>
+              <div class="fw-name">MDA + Core Loop 嵌套</div>
+              <div class="fw-note"><span class="tag">Vision</span>更强调"涌现 vs 设计"的张力,适合谈 Vision 而非具体机制。</div>
+            </td>
+            <td class="timing">立项 Vision 阶段</td>
+          </tr>
+          <tr>
+            <td>
+              <div class="fw-name">3C + Game Feel + Skill Atom</div>
+              <div class="fw-note"><span class="tag">Engineering</span>三套行业语言并联 — 更接近程序 / TA 工作流,工程实施可对齐。</div>
+            </td>
+            <td class="timing">程序 / TA 对接</td>
+          </tr>
+          <tr>
+            <td>
+              <div class="fw-name">Game Feel + Studio Pillars + OODA</div>
+              <div class="fw-note"><span class="tag">External</span>业内更分散,但语义更通用,适合面试 / 公开演讲场合。</div>
+            </td>
+            <td class="timing">候选人面试 / GDC 分享</td>
+          </tr>
+          <tr>
+            <td>
+              <div class="fw-name">Core Loop 嵌套模型</div>
+              <div class="fw-note"><span class="tag">Meta-Loop</span>业内显式拆出 Meta Loop —  Build / 养成 / 武器系统挂得住。</div>
+            </td>
+            <td class="timing">数值 / 关卡策划对接</td>
+          </tr>
+          <tr>
+            <td>
+              <div class="fw-name">Risk-Reward / Tension-Release</div>
+              <div class="fw-note"><span class="tag">Curve</span>业内已有现成的两条叠加曲线作为节奏锚。</div>
+            </td>
+            <td class="timing">数值策划对接爆发占比</td>
+          </tr>
+          <tr>
+            <td>
+              <div class="fw-name">Combat Triangle</div>
+              <div class="fw-note"><span class="tag">Template</span>三角 / 多边 / 不对称 / 矩阵 — 现成的克制模板可直接复用。</div>
+            </td>
+            <td class="timing">武器 / 角色差异化设计</td>
+          </tr>
+          <tr>
+            <td>
+              <div class="fw-name">Action Economy / Frame Data</div>
+              <div class="fw-note"><span class="tag">Commitment</span>更强调承诺成本与帧优势 — 帧级精度的执行层语言。</div>
+            </td>
+            <td class="timing">动作程序 / 动画 / TA 对接</td>
+          </tr>
+          <tr>
+            <td>
+              <div class="fw-name">Affordance / Signposting</div>
+              <div class="fw-note"><span class="tag">Signal</span>聚焦"信号如何被感知"而非"系统如何设计"——补足玩家侧视角。</div>
+            </td>
+            <td class="timing">Boss 招式预警 / 战场可读性</td>
+          </tr>
+          <tr>
+            <td>
+              <div class="fw-name">Challenge-Skill / Flow</div>
+              <div class="fw-note"><span class="tag">Difficulty</span>挑战与能力匹配的 Flow 四象限 — 难度与学习曲线的统一锚。</div>
+            </td>
+            <td class="timing">难度曲线 / 教学 / 二周目</td>
+          </tr>
+          <tr>
+            <td>
+              <div class="fw-name">Reaction Window Theory</div>
+              <div class="fw-note"><span class="tag">Millisecond</span>提供毫秒 / 帧级锚点,把响应链路全段量化。</div>
+            </td>
+            <td class="timing">招式前摇 / 输入延迟 / 公平性</td>
+          </tr>
+          <tr>
+            <td>
+              <div class="fw-name">Hick's Law / Cognitive Load</div>
+              <div class="fw-note"><span class="tag">Cognition</span>量化公式 + 工作记忆容量上限,诊断认知超载。</div>
+            </td>
+            <td class="timing">HUD 检验 / 快捷键 / 认知超载诊断</td>
+          </tr>
+          <tr>
+            <td>
+              <div class="fw-name">Behavior Tree / Utility AI / AI Director</div>
+              <div class="fw-note"><span class="tag">AI Lang</span>偏实现 / 调度的工程语言 — 与可读性边界互补。</div>
+            </td>
+            <td class="timing">战斗 AI / Boss 行为语法 / 动态难度</td>
+          </tr>
+          <tr>
+            <td>
+              <div class="fw-name">Co-op Patterns / Latency-Fairness</div>
+              <div class="fw-note"><span class="tag">Multiplayer</span>多人交互模式 + 网络一致性 / 延迟公平。</div>
+            </td>
+            <td class="timing">合作 ARPG / 联机 Boss / 网络帧预算</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============== CASES ============== -->
+  <section class="section reveal" id="cases">
+    <div class="section-head">
+      <div class="section-num">
+        <span>§Case — Field Study</span>
+        <span class="big">02</span>
+      </div>
+      <div class="section-title">
+        <h2>实战 <em>案例</em></h2>
+        <p class="sub">框架不抽象——挂到具体作品的具体瞬间，才能验证它真有解释力。</p>
+      </div>
+    </div>
+
+    <div class="case-grid">
+
+      <article class="case">
+        <span class="case-stamp">CASE · OODA</span>
+        <div class="case-tag">魂系列 · 二周目背板效应</div>
+        <h3>"为什么二周目<br>反而变简单了？"</h3>
+        <div class="phase">
+          <h5>一周目 · Boss 初见</h5>
+          <p><strong>Observe</strong> 看到 Boss 抬手——但不知道是什么招式。</p>
+          <p><strong>Orient</strong> "这个起手姿势意味着什么？横扫？突刺？"——耗时最长，试错中学习。</p>
+          <p><strong>Decide → Act</strong> "我不确定，先往后闪吧。"</p>
+        </div>
+        <div class="phase">
+          <h5>二周目 · 背板后</h5>
+          <p><strong>Observe</strong> 看到 Boss 抬手。</p>
+          <p><strong>Orient</strong> 瞬间匹配招式库——"是第三套连段的起手"——从<strong>推理模式</strong>切换为<strong>识别模式</strong>。</p>
+          <p><strong>Decide → Act</strong> 决策已预编译，肌肉记忆执行。</p>
+        </div>
+        <div class="case-takeaway">
+          这个差异不是数值变化，而是<strong>认知模型的彻底切换</strong>。Orient 是可训练的——好的敌人信号语言让玩家从"试错解读"平滑过渡到"快速识别"。
+        </div>
+      </article>
+
+      <article class="case">
+        <span class="case-stamp">CASE · FLOW</span>
+        <div class="case-tag">艾尔登法环 · 大树守卫</div>
+        <h3>"开场 30 秒后<br>就让你死的元教程"</h3>
+        <div class="phase">
+          <h5>初次遭遇 · 高挑战 × 低技能 → Anxiety</h5>
+          <p>不知道骑马战斗、不知道可绕路、操作熟练度趋近于零——玩家处于 Anxiety 区，且<strong>失败原因不完全可理解</strong>。</p>
+          <p>设计师故意制造一次 Flow 违规，迫使玩家建立元认知：<em>"打不过就先绕路"</em>。</p>
+        </div>
+        <div class="phase">
+          <h5>中期回归 · 挑战适中 × 技能提升 → Flow Channel</h5>
+          <p>骑马战斗已熟练 · 灵马、骨灰、更强武器 · 理解招式循环——玩家进入 Flow Channel，"每死一次都知道为什么"。</p>
+        </div>
+        <div class="case-takeaway">
+          Flow ≠ 一直舒服。好的战斗设计不是让玩家永远在 Flow Channel——而是让<strong>偏离有意义</strong>，且偏离后有回到 Flow 的多条路径。
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- ============== FOOTER ============== -->
+  <footer>
+    <div class="meta">
+      <strong>FILE</strong> 业内通识框架对照.md<br>
+      <strong>PATH</strong> 20_Area / GameDev / 10_战斗 / 01_方法论 / 顶层框架<br>
+      <strong>DOMAIN</strong> combat &nbsp;·&nbsp; <strong>LEVEL</strong> philosophy &nbsp;·&nbsp; <strong>TYPE</strong> concept
+    </div>
+    <div>
+      <div class="sig">— 当业内出现新顶层框架，追加到对应章节，不另开新页。</div>
+      <div style="margin-top: 12px;">CODEX · COMBAT-DESIGN · §IV.0 &nbsp;//&nbsp; CREATED 2026-04-29 &nbsp;//&nbsp; UPDATED 2026-05-07</div>
+    </div>
+  </footer>
+
+</main>
+
+<script>
+  // Reveal-on-scroll
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('in');
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  // Smooth anchor scroll
+  document.querySelectorAll('.codex-bar nav a').forEach(a => {
+    a.addEventListener('click', (ev) => {
+      const href = a.getAttribute('href');
+      if (href.startsWith('#')) {
+        ev.preventDefault();
+        const target = document.querySelector(href);
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+</script>
+</body>
+</html>

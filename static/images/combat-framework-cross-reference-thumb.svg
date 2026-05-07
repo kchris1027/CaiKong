@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
+  <title id="title">业内通识框架对照缩略图</title>
+  <desc id="desc">Dark combat design framework map thumbnail with amber and teal reference nodes.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#10131a"/>
+      <stop offset="0.54" stop-color="#171c24"/>
+      <stop offset="1" stop-color="#221b17"/>
+    </linearGradient>
+    <linearGradient id="line" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#d9a441"/>
+      <stop offset="1" stop-color="#6ab1aa"/>
+    </linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="800" fill="url(#bg)"/>
+  <g opacity="0.24" stroke="#d9a441" stroke-width="1">
+    <path d="M0 120H1200M0 240H1200M0 360H1200M0 480H1200M0 600H1200M0 720H1200"/>
+    <path d="M120 0V800M240 0V800M360 0V800M480 0V800M600 0V800M720 0V800M840 0V800M960 0V800M1080 0V800"/>
+  </g>
+  <circle cx="180" cy="150" r="260" fill="#d9a441" opacity="0.08"/>
+  <circle cx="960" cy="660" r="300" fill="#6ab1aa" opacity="0.09"/>
+  <g filter="url(#softShadow)">
+    <rect x="150" y="130" width="900" height="540" rx="22" fill="#151922" stroke="#343a45" stroke-width="2"/>
+    <path d="M260 420 C370 250 512 260 590 395 S820 544 940 330" fill="none" stroke="url(#line)" stroke-width="8" stroke-linecap="round"/>
+    <g fill="#151922" stroke-width="5">
+      <circle cx="260" cy="420" r="54" stroke="#d9a441"/>
+      <circle cx="430" cy="285" r="44" stroke="#6ab1aa"/>
+      <circle cx="590" cy="395" r="58" stroke="#d9a441"/>
+      <circle cx="760" cy="500" r="43" stroke="#c4623a"/>
+      <circle cx="940" cy="330" r="58" stroke="#6ab1aa"/>
+    </g>
+    <g font-family="Inter, Arial, sans-serif" font-size="26" font-weight="700" text-anchor="middle">
+      <text x="260" y="429" fill="#f0c068">MDA</text>
+      <text x="430" y="294" fill="#95d0ca">3C</text>
+      <text x="590" y="404" fill="#f0c068">OODA</text>
+      <text x="760" y="509" fill="#e19069">R/R</text>
+      <text x="940" y="339" fill="#95d0ca">FLOW</text>
+    </g>
+    <text x="210" y="215" fill="#7a7464" font-family="Consolas, monospace" font-size="22" letter-spacing="4">COMBAT DESIGN CODEX</text>
+    <text x="210" y="610" fill="#e8e2d2" font-family="Georgia, 'Times New Roman', serif" font-size="64" font-style="italic">Framework</text>
+    <text x="540" y="610" fill="#d9a441" font-family="Georgia, 'Times New Roman', serif" font-size="64" font-style="italic">Cross-Reference</text>
+  </g>
+</svg>
