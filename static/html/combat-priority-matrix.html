@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>战斗状态与优先级矩阵 · Combat Priority Matrix</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&family=IBM+Plex+Mono:wght@300;400;500;600&family=Noto+Serif+SC:wght@300;400;500;600;700;900&family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0a1f3d;--ink-rgb:10,31,61;--paper:#f1f3f5;--paper-rgb:241,243,245;--paper-tint:#e4e8ec;--ink-tint:#152a4a;
+    --mono:"IBM Plex Mono",ui-monospace,monospace;--serif-en:"Playfair Display","Source Serif 4",Georgia,serif;--serif-body-en:"Source Serif 4",Georgia,serif;--serif-zh:"Noto Serif SC",source-han-serif-sc,serif;--sans-zh:"Noto Sans SC",source-han-sans-sc,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{width:100%;height:100%;overflow:hidden;background:var(--ink);color:var(--paper);font-family:var(--sans-zh);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  canvas.bg{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;display:block;transition:opacity 1.2s ease}
+  canvas#bg-light{opacity:0}canvas#bg-dark{opacity:1}
+  body.light-bg canvas#bg-light{opacity:1}body.light-bg canvas#bg-dark{opacity:0}
+  #deck{position:fixed;inset:0;width:10000vw;height:100vh;display:flex;flex-wrap:nowrap;transition:transform .9s cubic-bezier(.77,0,.175,1);z-index:10;will-change:transform}
+  .slide{width:100vw;height:100vh;flex:0 0 100vw;position:relative;padding:6vh 6vw 10vh 6vw;display:flex;flex-direction:column;overflow:hidden}
+  .slide.light{color:var(--ink)}.slide.dark{color:var(--paper)}
+  .slide::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;transition:background .7s ease}
+  .slide.light::before{background:rgba(var(--paper-rgb),.78);backdrop-filter:blur(3px)}
+  .slide.dark::before{background:rgba(var(--ink-rgb),.78);backdrop-filter:blur(3px)}
+  .slide.hero.light::before{background:rgba(var(--paper-rgb),.16);backdrop-filter:none}
+  .slide.hero.dark::before{background:rgba(var(--ink-rgb),.12);backdrop-filter:none}
+  .slide.hero::after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none}
+  .slide.hero.light::after{background:linear-gradient(180deg,rgba(var(--paper-rgb),.28) 0%,rgba(var(--paper-rgb),0) 14%,rgba(var(--paper-rgb),0) 86%,rgba(var(--paper-rgb),.28) 100%)}
+  .slide.hero.dark::after{background:linear-gradient(180deg,rgba(var(--ink-rgb),.32) 0%,rgba(var(--ink-rgb),0) 14%,rgba(var(--ink-rgb),0) 86%,rgba(var(--ink-rgb),.32) 100%)}
+  .chrome{display:flex;justify-content:space-between;align-items:flex-start;font-family:var(--mono);font-size:max(11px,.78vw);letter-spacing:.2em;text-transform:uppercase;opacity:.62}
+  .foot{margin-top:auto;display:flex;justify-content:space-between;align-items:flex-end;font-family:var(--mono);font-size:max(11px,.78vw);letter-spacing:.18em;text-transform:uppercase;opacity:.5}
+  .kicker{font-family:var(--mono);font-size:12px;letter-spacing:.3em;text-transform:uppercase;opacity:.6;margin-bottom:2.6vh}
+  .lead{font-family:var(--serif-zh);font-weight:400;font-size:1.75vw;line-height:1.5;opacity:.86}
+  .frame{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+  .h-hero{font-family:var(--serif-zh);font-weight:900;font-size:10vw;line-height:.96;letter-spacing:-.02em}
+  .h-xl{font-family:var(--serif-zh);font-weight:700;font-size:6.2vw;line-height:1.08;letter-spacing:-.01em}
+  .h-sub{font-family:var(--serif-zh);font-weight:500;font-size:3.1vw;line-height:1.25;letter-spacing:0;opacity:.7}
+  .h-md{font-family:var(--serif-zh);font-weight:600;font-size:2.3vw;line-height:1.3}
+  .meta-row{display:flex;gap:1.2em;align-items:baseline;flex-wrap:wrap;font-family:var(--mono);font-size:max(12px,.92vw);letter-spacing:.16em;text-transform:uppercase;opacity:.6}
+  .callout{padding:3vh 2.4vw;border-left:3px solid currentColor;position:relative;font-family:var(--serif-zh);font-size:max(15px,1.2vw);line-height:1.55;opacity:.92}
+  .slide.light .callout{background:rgba(var(--ink-rgb),.05)}.slide.dark .callout{background:rgba(var(--paper-rgb),.06)}
+  .callout-src{display:block;margin-top:1.6vh;font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;opacity:.6}
+  .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:4vw;flex:1;align-content:center}
+  .grid-4{display:grid;grid-template-columns:repeat(2,1fr);grid-template-rows:repeat(2,1fr);gap:4vh 6vw;flex:1;align-content:center}
+  .grid-2-6-6{display:grid;grid-template-columns:1fr 1fr;gap:3vw 4vh;align-items:start}
+  .grid-3-3{display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:minmax(0,1fr);gap:2.4vh 2vw}
+  .pillar{display:flex;flex-direction:column;gap:1.8vh}
+  .pillar .ic{font-family:var(--serif-en);font-style:italic;font-size:2.6vw;opacity:.45;font-weight:400}
+  .pillar .ic svg{width:2.8vw;height:2.8vw;stroke-width:1.2;opacity:.7}
+  .pillar .t{font-family:var(--serif-zh);font-weight:700;font-size:2.4vw;line-height:1.1}
+  .pillar .d{font-family:var(--sans-zh);font-weight:400;font-size:max(14px,1.1vw);opacity:.76;line-height:1.6}
+  .stat-card{display:flex;flex-direction:column;gap:.8vh;align-items:flex-start;padding-top:1.6vh;border-top:1px solid currentColor;border-color:rgba(127,127,127,.3)}
+  .stat-card .stat-label{font-family:var(--mono);font-size:max(10px,.78vw);letter-spacing:.24em;text-transform:uppercase;opacity:.55}
+  .pipeline-section{margin-top:4.4vh;padding-top:2.8vh;border-top:1px dashed rgba(127,127,127,.32)}
+  .pipeline-section:first-of-type{border-top:0;padding-top:0;margin-top:3vh}
+  .pipeline-label{font-family:var(--mono);font-size:max(11px,.85vw);letter-spacing:.24em;text-transform:uppercase;opacity:.62;margin-bottom:2.2vh}
+  .pipeline{display:grid;grid-template-columns:repeat(5,1fr);gap:1.2vw}
+  .pipeline[data-cols="3"]{grid-template-columns:repeat(3,1fr)}
+  .pipeline[data-cols="4"]{grid-template-columns:repeat(4,1fr)}
+  .step{display:flex;flex-direction:column;gap:.8vh;padding-top:1.4vh;border-top:1px solid currentColor;border-color:rgba(127,127,127,.35)}
+  .step-nb{font-family:var(--serif-en);font-style:italic;font-weight:500;font-size:1.15vw;opacity:.45}
+  .step-title{font-family:var(--sans-zh);font-weight:700;font-size:1.55vw;letter-spacing:.01em;line-height:1.2}
+  .step-desc{font-family:var(--sans-zh);font-weight:400;font-size:max(12px,.95vw);line-height:1.45;opacity:.72}
+  .matrix-table{width:100%;border-collapse:collapse;font-family:var(--sans-zh);font-size:max(11px,.9vw);line-height:1.4}
+  .matrix-table th{font-family:var(--mono);font-size:max(10px,.75vw);letter-spacing:.12em;text-transform:uppercase;opacity:.7;padding:1.2vh 1vw;border-bottom:1px solid rgba(127,127,127,.3);text-align:left;font-weight:500}
+  .matrix-table td{padding:1vh 1vw;border-bottom:1px solid rgba(127,127,127,.15);vertical-align:top}
+  .matrix-table .cell-hit{font-weight:600}.slide.light .matrix-table .cell-hit{color:#1a6b2a}.slide.dark .matrix-table .cell-hit{color:#6fcf7f}
+  .matrix-table .cell-miss{opacity:.4}.matrix-table .cell-special{font-weight:700}
+  .ico-md{fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;width:1.8vw;height:1.8vw;stroke-width:1.3;display:inline-block;vertical-align:-.4em}
+  [data-anim]{opacity:0}[data-anim="left"]{transform:translateX(-24px)}[data-anim="right"]{transform:translateX(24px)}[data-anim="line"]{opacity:0;transform:translateY(10px)}[data-animate="pipeline"] [data-anim]{opacity:.15}
+  #nav{position:fixed;left:50%;bottom:2.6vh;transform:translateX(-50%);z-index:30;display:flex;gap:10px;padding:8px 14px;border-radius:999px;background:rgba(0,0,0,.18);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+  #nav .dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.3);cursor:pointer;transition:all .3s ease;border:0;padding:0}
+  #nav .dot:hover{background:rgba(255,255,255,.5);transform:scale(1.15)}
+  #nav .dot.active{background:rgba(255,255,255,.95);width:22px;border-radius:999px}
+  body.light-bg #nav{background:rgba(255,255,255,.25)}body.light-bg #nav .dot{background:rgba(var(--ink-rgb),.25)}body.light-bg #nav .dot.active{background:rgba(var(--ink-rgb),.9)}
+  #hint{position:fixed;bottom:3vh;right:3vw;z-index:30;font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;opacity:.4;mix-blend-mode:difference;color:#aaa}
+  @media(max-width:900px){.h-hero{font-size:14vw}.h-xl{font-size:9vw}.pipeline{grid-template-columns:repeat(2,1fr)}.grid-2-6-6,.grid-3{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<canvas id="bg-dark" class="bg"></canvas>
+<canvas id="bg-light" class="bg"></canvas>
+<div id="hint">← → 翻页 · ESC 索引</div>
+<div id="deck">
+
+<!-- P1: 封面 hero dark -->
+<section class="slide hero dark">
+  <div class="chrome"><div>Combat Design · Framework</div><div>Vol.01</div></div>
+  <div class="frame" style="display:grid;gap:4vh;align-content:center;min-height:80vh">
+    <div class="kicker" data-anim>ARPG Core · Priority System</div>
+    <h1 class="h-hero" style="font-size:8.5vw" data-anim>优先级矩阵</h1>
+    <h2 class="h-sub" data-anim>战斗状态的顶层裁决语言</h2>
+    <p class="lead" style="max-width:60vw" data-anim>当两个动作在同一帧相遇时，谁压过谁——从体感口水仗变成查表问题。</p>
+    <div class="meta-row" data-anim><span>Combat State &amp; Priority Matrix</span><span>·</span><span>ARPG Design Philosophy</span></div>
+  </div>
+  <div class="foot"><div>战斗设计顶层框架 · 交互维度</div><div>— 2026 —</div></div>
+</section>
+
+<!-- P2: 核心命题 light quote -->
+<section class="slide light" data-animate="quote">
+  <div class="chrome"><div>Core Proposition</div><div>01 / 19</div></div>
+  <div class="frame" style="display:grid;gap:5vh;align-content:center;min-height:80vh">
+    <div class="kicker" data-anim>Why This Matters</div>
+    <blockquote style="font-family:var(--serif-zh);font-weight:700;font-size:5vw;line-height:1.2;max-width:72vw">
+      <span data-anim="line" style="display:block">"战斗系统不是</span>
+      <span data-anim="line" style="display:block">状态机的简单叠加，</span>
+      <span data-anim="line" style="display:block">而是一套优先级法律。"</span>
+    </blockquote>
+    <p class="lead" style="max-width:55vw;opacity:.72" data-anim>子系统只解决"我自己怎么实现"，不解决"我和别人冲突时谁赢"。霸体、弹反、无敌帧、控制免疫——没有一个能被任何单一子系统独立裁决。</p>
+  </div>
+  <div class="foot"><div>Page 02 · Core</div><div>— · —</div></div>
+</section>
+
+<!-- P3: 幕封 状态分层 hero dark -->
+<section class="slide hero dark">
+  <div class="chrome"><div>Act I · Foundation</div><div>Act I · 02 / 19</div></div>
+  <div class="frame" style="display:grid;gap:6vh;align-content:center;min-height:80vh">
+    <div class="kicker" data-anim>Act I</div>
+    <h1 class="h-hero" style="font-size:8vw" data-anim>三层正交</h1>
+    <p class="lead" style="max-width:55vw" data-anim>状态分层是矩阵能成立的前提。先有"层"再谈"压制"。</p>
+  </div>
+  <div class="foot"><div>状态分层模型</div><div>— · —</div></div>
+</section>
+
+<!-- P4: 三层正交 light pipeline -->
+<section class="slide light" data-animate="pipeline">
+  <div class="chrome"><div>State Layering · 3 Planes</div><div>Act I · 03 / 19</div></div>
+  <div class="frame" style="padding-top:2vh">
+    <div class="kicker">Three Orthogonal Layers</div>
+    <h2 class="h-xl" style="font-size:4.5vw;margin-bottom:1vh">状态分层模型</h2>
+    <p class="lead" style="margin-bottom:1.5vh;font-size:1.5vw">三层正交，可以同时存在。角色身上同时携带三层信息，互不干扰。</p>
+    <div class="pipeline-section" style="margin-top:2vh;padding-top:0">
+      <div class="pipeline-label">Layer I · 动作状态层 Action State</div>
+      <div class="pipeline" data-cols="3">
+        <div class="step" data-anim="step"><div class="step-nb">01</div><div class="step-title">我在做什么</div><div class="step-desc">前摇 / 持续 / 收招 / 可取消窗口</div></div>
+        <div class="step" data-anim="step"><div class="step-nb">02</div><div class="step-title">产生抗性</div><div class="step-desc">重击前摇自带霸体；大招挂载无敌帧</div></div>
+        <div class="step" data-anim="step"><div class="step-nb">03</div><div class="step-title">被打断时</div><div class="step-desc">受击状态可强制中断当前动作</div></div>
+      </div>
+    </div>
+    <div class="pipeline-section" style="margin-top:2.5vh;padding-top:2vh">
+      <div class="pipeline-label">Layer II · 抗性状态层 Defensive State</div>
+      <div class="pipeline" data-cols="3">
+        <div class="step" data-anim="step"><div class="step-nb">04</div><div class="step-title">我能扛什么</div><div class="step-desc">霸体 / 无敌帧 / 格挡 / 弹反 / CC 免疫</div></div>
+        <div class="step" data-anim="step"><div class="step-nb">05</div><div class="step-title">过滤受击</div><div class="step-desc">有霸体则不进硬直；有无敌帧则不触发任何受击</div></div>
+        <div class="step" data-anim="step"><div class="step-nb">06</div><div class="step-title">可叠加</div><div class="step-desc">大招期间可同时拥有 i-Frame + CC Immune + Hyper Armor</div></div>
+      </div>
+    </div>
+    <div class="pipeline-section" style="margin-top:2.5vh;padding-top:2vh">
+      <div class="pipeline-label">Layer III · 受击状态层 Hit Reaction</div>
+      <div class="pipeline" data-cols="3">
+        <div class="step" data-anim="step"><div class="step-nb">07</div><div class="step-title">被打后变什么</div><div class="step-desc">硬直 / 击退 / 击飞 / 倒地 / 处决态</div></div>
+        <div class="step" data-anim="step"><div class="step-nb">08</div><div class="step-title">打断动作</div><div class="step-desc">被击飞则强制中断当前动作，进入受击动画</div></div>
+        <div class="step" data-anim="step"><div class="step-nb">09</div><div class="step-title">有优先级</div><div class="step-desc">击飞 > 击倒 > 击退 > 硬直，高覆盖低</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><div>Page 04 · State Layering</div><div>Three Planes</div></div>
+</section>
+
+<!-- P5: 幕封 控制权 hero light -->
+<section class="slide hero light">
+  <div class="chrome"><div>Act II · Control Authority</div><div>Act II · 04 / 19</div></div>
+  <div class="frame" style="display:grid;gap:6vh;align-content:center;min-height:80vh">
+    <div class="kicker" data-anim>Act II</div>
+    <h1 class="h-hero" style="font-size:7.5vw" data-anim>控制权</h1>
+    <p class="lead" style="max-width:55vw" data-anim>当多个状态同时请求占据角色时，谁能抢到？</p>
+  </div>
+  <div class="foot"><div>状态控制权优先级模型</div><div>— · —</div></div>
+</section>
+
+<!-- P6: 三类控制权 dark -->
+<section class="slide dark" data-animate="directional">
+  <div class="chrome"><div>Priority · Three Classes</div><div>Act II · 05 / 19</div></div>
+  <div class="frame" style="padding-top:4vh">
+    <div class="kicker" data-anim>Control Authority Model</div>
+    <h2 class="h-xl" style="font-size:4.8vw;margin-bottom:3vh" data-anim>三类控制权</h2>
+    <div class="grid-3" style="gap:3vw">
+      <div data-anim="left" style="padding:3vh 2vw;border-left:3px solid currentColor">
+        <div class="kicker" style="opacity:.9">Class I · Highest</div>
+        <h3 class="h-md" style="margin-top:1.5vh">系统强制</h3>
+        <p style="margin-top:1.5vh;font-family:var(--sans-zh);font-size:max(13px,1.05vw);line-height:1.6;opacity:.78">强制阻断一切输入。Break 态、死亡、处决演出、阶段切换。Impact = MAX。</p>
+      </div>
+      <div data-anim="right" style="padding:3vh 2vw;border-left:3px solid currentColor;opacity:.85">
+        <div class="kicker" style="opacity:.9">Class II · Medium</div>
+        <h3 class="h-md" style="margin-top:1.5vh">被动输入</h3>
+        <p style="margin-top:1.5vh;font-family:var(--sans-zh);font-size:max(13px,1.05vw);line-height:1.6;opacity:.78">由外部施加。受击硬直、击飞、控制效果。走 Impact vs Mass 比较。</p>
+      </div>
+      <div data-anim="right" style="padding:3vh 2vw;border-left:3px solid currentColor;opacity:.65">
+        <div class="kicker" style="opacity:.9">Class III · Lowest</div>
+        <h3 class="h-md" style="margin-top:1.5vh">玩家主动</h3>
+        <p style="margin-top:1.5vh;font-family:var(--sans-zh);font-size:max(13px,1.05vw);line-height:1.6;opacity:.78">自身操作产生。攻击、闪避、格挡、跳跃。走取消窗口 + Priority Tier。</p>
+      </div>
+    </div>
+    <div class="callout" style="margin-top:3vh" data-anim>默认裁决：I > II > III。免疫标识（霸体、无敌帧、CC Immune）可跳过上层压制。</div>
+  </div>
+  <div class="foot"><div>Page 06 · Three Classes</div><div>I > II > III</div></div>
+</section>
+
+<!-- P7: 类内子优先级 light -->
+<section class="slide light">
+  <div class="chrome"><div>Sub-Priority · Within Class</div><div>Act II · 06 / 19</div></div>
+  <div class="frame" style="padding-top:1.5vh">
+    <div class="kicker" data-anim>Intra-Class Priority</div>
+    <h2 class="h-xl" style="font-size:3.8vw;margin-bottom:1vh" data-anim>类内子优先级</h2>
+    <div class="grid-3" style="gap:2.5vw;margin-top:1vh">
+      <div data-anim>
+        <h3 class="h-md" style="margin-bottom:1vh;font-size:1.8vw">I类：异常状态覆盖</h3>
+        <table class="matrix-table"><thead><tr><th>优先级</th><th>状态</th></tr></thead><tbody>
+          <tr><td style="font-weight:700">3</td><td>死亡（压过一切）</td></tr>
+          <tr><td style="font-weight:700">2</td><td>Break（可打断控制）</td></tr>
+          <tr><td style="font-weight:700">1</td><td>控制（不能覆盖已有控制）</td></tr>
+        </tbody></table>
+        <p style="margin-top:1vh;font-family:var(--sans-zh);font-size:max(11px,.85vw);opacity:.65;line-height:1.4">死亡压过一切；Break 可打断冰冻等控制态。</p>
+      </div>
+      <div data-anim>
+        <h3 class="h-md" style="margin-bottom:1vh;font-size:1.8vw">II类：受击优先级</h3>
+        <table class="matrix-table"><thead><tr><th>等级</th><th>状态</th></tr></thead><tbody>
+          <tr><td style="font-weight:700">5</td><td>击浮空</td></tr>
+          <tr><td style="font-weight:700">4</td><td>击飞</td></tr>
+          <tr><td style="font-weight:700">3</td><td>击倒</td></tr>
+          <tr><td style="font-weight:700">2</td><td>击退</td></tr>
+          <tr><td style="font-weight:700">1</td><td>命中硬直</td></tr>
+        </tbody></table>
+        <p style="margin-top:1vh;font-family:var(--sans-zh);font-size:max(11px,.85vw);opacity:.65;line-height:1.4">高覆盖低；同级互斥防闪烁。</p>
+      </div>
+      <div data-anim>
+        <h3 class="h-md" style="margin-bottom:1vh;font-size:1.8vw">III类：主动输入裁决</h3>
+        <table class="matrix-table"><thead><tr><th>层级</th><th>机制</th></tr></thead><tbody>
+          <tr><td style="font-weight:700">层1</td><td>取消窗口（覆盖 90%）帧级精确</td></tr>
+          <tr><td style="font-weight:700">层2</td><td>Priority Tier（覆盖 10%）差值强制打断</td></tr>
+        </tbody></table>
+        <p style="margin-top:1.2vh;font-family:var(--sans-zh);font-size:max(11px,.85vw);opacity:.65;line-height:1.4">打断优先级排序：</p>
+        <table class="matrix-table" style="margin-top:.5vh"><thead><tr><th>Tier</th><th>能力</th></tr></thead><tbody>
+          <tr><td style="font-weight:700">6</td><td>连携</td></tr>
+          <tr><td style="font-weight:700">5</td><td>大招</td></tr>
+          <tr><td style="font-weight:700">4</td><td>技能</td></tr>
+          <tr><td style="font-weight:700">3</td><td>冲刺</td></tr>
+          <tr><td style="font-weight:700">2</td><td>普攻</td></tr>
+          <tr><td style="font-weight:700">1</td><td>移动</td></tr>
+        </tbody></table>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><div>Page 07 · Sub-Priority</div><div>Within Class</div></div>
+</section>
+
+<!-- P8: 环境约束 dark -->
+<section class="slide dark">
+  <div class="chrome"><div>Environment · Constraint</div><div>Act II · 07 / 19</div></div>
+  <div class="frame" style="padding-top:4vh">
+    <div class="kicker" data-anim>Pre-Gate · Environment Layer</div>
+    <h2 class="h-xl" style="font-size:4.5vw;margin-bottom:2vh" data-anim>环境约束层</h2>
+    <p class="lead" style="margin-bottom:3vh" data-anim>在优先级判定之前，环境先决定能力是否可用。</p>
+    <div style="overflow-x:auto;flex:1" data-anim>
+      <table class="matrix-table"><thead><tr><th>环境 \ 能力</th><th>移动</th><th>跳跃</th><th>冲刺</th><th>普攻</th><th>技能</th><th>大招</th><th>连携</th></tr></thead><tbody>
+        <tr><td style="font-weight:600">地面</td><td class="cell-hit">可用</td><td class="cell-hit">可用</td><td class="cell-hit">可用</td><td class="cell-hit">可用</td><td class="cell-hit">可用</td><td class="cell-hit">可用</td><td class="cell-hit">可用</td></tr>
+        <tr><td style="font-weight:600">空中</td><td class="cell-hit">可用</td><td class="cell-hit">可用</td><td class="cell-hit">可用</td><td class="cell-hit">可用</td><td class="cell-miss">禁止</td><td class="cell-miss">禁止</td><td class="cell-miss">禁止</td></tr>
+        <tr><td style="font-weight:600">墙面</td><td class="cell-hit">可用</td><td class="cell-hit">可用</td><td class="cell-hit">可用</td><td class="cell-miss">禁止</td><td class="cell-miss">禁止</td><td class="cell-miss">禁止</td><td class="cell-miss">禁止</td></tr>
+        <tr><td style="font-weight:600">水面</td><td class="cell-hit">可用</td><td class="cell-miss">禁止</td><td class="cell-hit">可用</td><td class="cell-miss">禁止</td><td class="cell-miss">禁止</td><td class="cell-miss">禁止</td><td class="cell-miss">禁止</td></tr>
+      </tbody></table>
+    </div>
+    <div class="callout" style="margin-top:2vh" data-anim>环境也影响质量等级——空中 Mass 临时降低，更容易被击飞。Break/虚弱期间可将 Mass 置 0。</div>
+  </div>
+  <div class="foot"><div>Page 08 · Environment</div><div>Pre-Gate</div></div>
+</section>
+
+<!-- P9: 幕封 质量与冲击 hero dark -->
+<section class="slide hero dark">
+  <div class="chrome"><div>Act III · Mass &amp; Impact</div><div>Act III · 08 / 19</div></div>
+  <div class="frame" style="display:grid;gap:5vh;align-content:center;min-height:80vh">
+    <div class="kicker" data-anim>Act III</div>
+    <h1 class="h-hero" style="font-size:7.5vw" data-anim>质量与冲击</h1>
+    <p class="lead" style="max-width:60vw" data-anim>Mass 是门槛——攻击有没有资格影响目标。<br>Poise 是血条——累积多少次才真正被打断。</p>
+  </div>
+  <div class="foot"><div>双边比较模型</div><div>— · —</div></div>
+</section>
+
+<!-- P10: 受击判定流水线 light pipeline -->
+<section class="slide light" data-animate="pipeline">
+  <div class="chrome"><div>Mass &amp; Impact · Flow</div><div>Act III · 09 / 19</div></div>
+  <div class="frame" style="padding-top:2vh">
+    <div class="kicker">Hit Resolution Pipeline</div>
+    <h2 class="h-xl" style="font-size:4.5vw;margin-bottom:1.5vh">受击判定流水线</h2>
+    <p class="lead" style="margin-bottom:1.5vh;font-size:1.5vw">两关串联 + 防无限连击兜底。</p>
+    <div class="pipeline-section" style="margin-top:2vh;padding-top:0">
+      <div class="pipeline-label">Gate 1 · Mass Check (Instant)</div>
+      <div class="pipeline" data-cols="3">
+        <div class="step" data-anim="step"><div class="step-nb">01</div><div class="step-title">Impact > Mass</div><div class="step-desc">完整受击反应（硬直/击退/击飞）</div></div>
+        <div class="step" data-anim="step"><div class="step-nb">02</div><div class="step-title">Impact = Mass</div><div class="step-desc">轻微受击（微硬直，无位移）</div></div>
+        <div class="step" data-anim="step"><div class="step-nb">03</div><div class="step-title">Impact < Mass</div><div class="step-desc">免疫受击反应，仅扣血</div></div>
+      </div>
+    </div>
+    <div class="pipeline-section" style="margin-top:2.5vh;padding-top:2vh">
+      <div class="pipeline-label">Gate 2 · Poise Check (Cumulative)</div>
+      <div class="pipeline" data-cols="4">
+        <div class="step" data-anim="step"><div class="step-nb">04</div><div class="step-title">检查霸体</div><div class="step-desc">目标是否 Hyper Armor？</div></div>
+        <div class="step" data-anim="step"><div class="step-nb">05</div><div class="step-title">无霸体</div><div class="step-desc">直接触发完整受击</div></div>
+        <div class="step" data-anim="step"><div class="step-nb">06</div><div class="step-title">有霸体</div><div class="step-desc">扣 Poise Damage，检查韧性条</div></div>
+        <div class="step" data-anim="step"><div class="step-nb">07</div><div class="step-title">韧性归零</div><div class="step-desc">霸体破，触发 Break</div></div>
+      </div>
+    </div>
+    <div class="pipeline-section" style="margin-top:2.5vh;padding-top:2vh">
+      <div class="pipeline-label">Safety Net · Stagger Gauge (Anti-Infinite)</div>
+      <div class="pipeline" data-cols="3">
+        <div class="step" data-anim="step"><div class="step-nb">08</div><div class="step-title">失衡值累计</div><div class="step-desc">每次受击累计失衡值</div></div>
+        <div class="step" data-anim="step"><div class="step-nb">09</div><div class="step-title">达阈值</div><div class="step-desc">触发受击保护（吹飞脱离/短暂无敌）</div></div>
+        <div class="step" data-anim="step"><div class="step-nb">10</div><div class="step-title">归零重置</div><div class="step-desc">保护结束后重新累计</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><div>Page 10 · Pipeline</div><div>Mass → Poise → Stagger</div></div>
+</section>
+
+<!-- P11: 质量-状态矩阵 dark -->
+<section class="slide dark">
+  <div class="chrome"><div>Mass Level · State Matrix</div><div>Act III · 10 / 19</div></div>
+  <div class="frame" style="padding-top:4vh">
+    <div class="kicker" data-anim>Mass Level · What Can Affect Whom</div>
+    <h2 class="h-xl" style="font-size:4.5vw;margin-bottom:2vh" data-anim>质量-状态矩阵</h2>
+    <p class="lead" style="margin-bottom:3vh" data-anim>Mass 越高，能影响该单位的受击类型越少。</p>
+    <div style="overflow-x:auto" data-anim>
+      <table class="matrix-table"><thead><tr><th>受击 \ 质量</th><th>Mass 1 小兵</th><th>Mass 2 精英</th><th>Mass 3 头目</th><th>Mass 4 Boss</th></tr></thead><tbody>
+        <tr><td style="font-weight:600">命中硬直</td><td class="cell-hit">受影响</td><td class="cell-hit">受影响</td><td class="cell-hit">受影响</td><td class="cell-hit">受影响</td></tr>
+        <tr><td style="font-weight:600">击退</td><td class="cell-hit">受影响</td><td class="cell-hit">受影响</td><td class="cell-hit">受影响</td><td class="cell-miss">免疫</td></tr>
+        <tr><td style="font-weight:600">击倒</td><td class="cell-hit">受影响</td><td class="cell-hit">受影响</td><td class="cell-miss">免疫</td><td class="cell-miss">免疫</td></tr>
+        <tr><td style="font-weight:600">击飞</td><td class="cell-hit">受影响</td><td class="cell-miss">免疫</td><td class="cell-miss">免疫</td><td class="cell-miss">免疫</td></tr>
+        <tr><td style="font-weight:600">击浮空</td><td class="cell-hit">受影响</td><td class="cell-miss">免疫</td><td class="cell-miss">免疫</td><td class="cell-miss">免疫</td></tr>
+      </tbody></table>
+    </div>
+    <div class="callout" style="margin-top:3vh" data-anim>线性模型覆盖 90%。少数非线性需求（如"免疫冰冻但不免疫击飞"）用显式免疫 Tag 做补丁。Tag 数量严格管控。</div>
+  </div>
+  <div class="foot"><div>Page 11 · Mass-State</div><div>Linear Model</div></div>
+</section>
+
+<!-- P12: 攻击属性十列 light -->
+<section class="slide light">
+  <div class="chrome"><div>Attack Attributes · 10 Columns</div><div>Act III · 11 / 19</div></div>
+  <div class="frame" style="padding-top:3vh">
+    <div class="kicker" data-anim>Attack Attribute Matrix</div>
+    <h2 class="h-xl" style="font-size:4.5vw;margin-bottom:1vh" data-anim>攻击属性十列</h2>
+    <p class="lead" style="margin-bottom:2vh" data-anim>每个攻击技能上线前，必须填齐这十列。空白即 false / 0。</p>
+    <div class="grid-2-6-6" style="gap:2vh 4vw">
+      <div data-anim>
+        <div class="stat-card" style="margin-bottom:1.5vh"><div class="stat-label">Priority Tier</div><div style="font-family:var(--sans-zh);font-size:max(13px,1.05vw);line-height:1.5;opacity:.82;margin-top:.5vh">0-5，强制打断优先级</div></div>
+        <div class="stat-card" style="margin-bottom:1.5vh"><div class="stat-label">Impact Level</div><div style="font-family:var(--sans-zh);font-size:max(13px,1.05vw);line-height:1.5;opacity:.82;margin-top:.5vh">0-5，与目标 Mass 比较</div></div>
+        <div class="stat-card" style="margin-bottom:1.5vh"><div class="stat-label">Hyper Armor Break</div><div style="font-family:var(--sans-zh);font-size:max(13px,1.05vw);line-height:1.5;opacity:.82;margin-top:.5vh">bool，是否破霸体强制硬直</div></div>
+        <div class="stat-card" style="margin-bottom:1.5vh"><div class="stat-label">Unblockable</div><div style="font-family:var(--sans-zh);font-size:max(13px,1.05vw);line-height:1.5;opacity:.82;margin-top:.5vh">bool，无视格挡（抓投）</div></div>
+        <div class="stat-card"><div class="stat-label">Unparriable</div><div style="font-family:var(--sans-zh);font-size:max(13px,1.05vw);line-height:1.5;opacity:.82;margin-top:.5vh">bool，无视弹反（红光技）</div></div>
+      </div>
+      <div data-anim>
+        <div class="stat-card" style="margin-bottom:1.5vh"><div class="stat-label">i-Frame Bypass</div><div style="font-family:var(--sans-zh);font-size:max(13px,1.05vw);line-height:1.5;opacity:.82;margin-top:.5vh">bool，无视无敌帧（极稀有）</div></div>
+        <div class="stat-card" style="margin-bottom:1.5vh"><div class="stat-label">Poise Damage</div><div style="font-family:var(--sans-zh);font-size:max(13px,1.05vw);line-height:1.5;opacity:.82;margin-top:.5vh">int，削韧值</div></div>
+        <div class="stat-card" style="margin-bottom:1.5vh"><div class="stat-label">Hit Reaction Tag</div><div style="font-family:var(--sans-zh);font-size:max(13px,1.05vw);line-height:1.5;opacity:.82;margin-top:.5vh">enum，触发哪种受击反应</div></div>
+        <div class="stat-card" style="margin-bottom:1.5vh"><div class="stat-label">CC Type</div><div style="font-family:var(--sans-zh);font-size:max(13px,1.05vw);line-height:1.5;opacity:.82;margin-top:.5vh">enum，控制类型</div></div>
+        <div class="stat-card"><div class="stat-label">CC Resistance Bypass</div><div style="font-family:var(--sans-zh);font-size:max(13px,1.05vw);line-height:1.5;opacity:.82;margin-top:.5vh">bool，无视控制免疫</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><div>Page 12 · Attack Attributes</div><div>10 Columns</div></div>
+</section>
+
+<!-- P13: 防守状态六层 dark -->
+<section class="slide dark">
+  <div class="chrome"><div>Defense States · 6 Types</div><div>Act III · 12 / 19</div></div>
+  <div class="frame" style="padding-top:4vh">
+    <div class="kicker" data-anim>Defensive State Matrix</div>
+    <h2 class="h-xl" style="font-size:4.5vw;margin-bottom:3vh" data-anim>防守状态六层</h2>
+    <div class="grid-3-3" style="gap:2.5vh 3vw">
+      <div class="pillar" data-anim><div class="ic"><i data-lucide="shield"></i></div><div class="t">i-Frames</div><div class="d">闪避中段、大招前摇。多数攻击被忽略。</div></div>
+      <div class="pillar" data-anim><div class="ic"><i data-lucide="mountain"></i></div><div class="t">Hyper Armor</div><div class="d">重击前摇、Boss 红光。不进硬直，但仍受伤。</div></div>
+      <div class="pillar" data-anim><div class="ic"><i data-lucide="square"></i></div><div class="t">Block</div><div class="d">主动格挡。部分减伤，消耗格挡值。</div></div>
+      <div class="pillar" data-anim><div class="ic"><i data-lucide="zap"></i></div><div class="t">Parry Window</div><div class="d">弹反开窗 5-10 帧。完美防御 + 反向硬直。</div></div>
+      <div class="pillar" data-anim><div class="ic"><i data-lucide="ban"></i></div><div class="t">CC Immune</div><div class="d">Boss 阶段切换、玩家大招期间。控制标签被忽略。</div></div>
+      <div class="pillar" data-anim><div class="ic"><i data-lucide="gauge"></i></div><div class="t">Poise Pool</div><div class="d">韧性条余量。累积削韧达阈值才进入硬直。</div></div>
+    </div>
+    <div class="callout" style="margin-top:2vh" data-anim>防守状态可叠加。大招期间通常同时拥有 i-Frames + CC Immune + Hyper Armor。</div>
+  </div>
+  <div class="foot"><div>Page 13 · Defense States</div><div>6 Types</div></div>
+</section>
+
+<!-- P14: 幕封 攻防裁决 hero light -->
+<section class="slide hero light">
+  <div class="chrome"><div>Act IV · The Matrix</div><div>Act IV · 13 / 19</div></div>
+  <div class="frame" style="display:grid;gap:6vh;align-content:center;min-height:80vh">
+    <div class="kicker" data-anim>Act IV</div>
+    <h1 class="h-hero" style="font-size:7.5vw" data-anim>攻防裁决</h1>
+    <p class="lead" style="max-width:55vw" data-anim>攻击属性 × 防守状态 = 结果。一张表终结所有争议。</p>
+  </div>
+  <div class="foot"><div>优先级判定矩阵</div><div>— · —</div></div>
+</section>
+
+<!-- P15: 攻防判定矩阵 dark -->
+<section class="slide dark">
+  <div class="chrome"><div>Priority Matrix · Core</div><div>Act IV · 14 / 19</div></div>
+  <div class="frame" style="padding-top:3vh">
+    <div class="kicker" data-anim>Priority Judgment Matrix</div>
+    <h2 class="h-xl" style="font-size:4.5vw;margin-bottom:2vh" data-anim>攻防裁决矩阵</h2>
+    <div style="overflow-x:auto;flex:1" data-anim>
+      <table class="matrix-table"><thead><tr><th style="min-width:11vw">攻击 \ 防守</th><th>i-Frames</th><th>Hyper Armor</th><th>Block</th><th>Parry</th><th>CC Immune</th><th>普通态</th></tr></thead><tbody>
+        <tr><td style="font-weight:600">普通攻击</td><td class="cell-miss">无效</td><td>命中无硬直</td><td>减伤</td><td class="cell-special">触发弹反</td><td>不施控</td><td class="cell-hit">完整命中</td></tr>
+        <tr><td style="font-weight:600">破霸体攻击</td><td class="cell-miss">无效</td><td class="cell-hit">强制硬直</td><td>减伤</td><td class="cell-special">触发弹反</td><td>不施控</td><td class="cell-hit">完整命中</td></tr>
+        <tr><td style="font-weight:600">Unblockable</td><td class="cell-miss">无效</td><td>命中无硬直</td><td class="cell-hit">完整命中</td><td class="cell-special">触发弹反</td><td>不施控</td><td class="cell-hit">完整命中</td></tr>
+        <tr><td style="font-weight:600">红光 Unparriable</td><td class="cell-miss">无效</td><td>命中无硬直</td><td>减伤</td><td class="cell-miss">不可弹</td><td>不施控</td><td class="cell-hit">完整命中</td></tr>
+        <tr><td style="font-weight:600">i-Frame Bypass</td><td class="cell-hit">完整命中</td><td>命中无硬直</td><td>减伤</td><td class="cell-special">触发弹反</td><td>不施控</td><td class="cell-hit">完整命中</td></tr>
+        <tr><td style="font-weight:600">控制类技能</td><td class="cell-miss">无效</td><td>无硬直无控</td><td>减伤无控</td><td class="cell-special">触发弹反</td><td class="cell-miss">不施控</td><td class="cell-hit">命中+控制</td></tr>
+      </tbody></table>
+    </div>
+    <div class="callout" style="margin-top:2vh" data-anim>同帧互命中（Trade）：双方各自独立结算。口诀：i-Frames > 非 Bypass > Parry > Unblockable > Block > Hyper Armor 屏蔽硬直 > CC Immune 屏蔽控制。</div>
+  </div>
+  <div class="foot"><div>Page 15 · Matrix</div><div>The Core Table</div></div>
+</section>
+
+<!-- P16: 非对称设计 light -->
+<section class="slide light" data-animate="directional">
+  <div class="chrome"><div>Asymmetry · By Design</div><div>Act IV · 15 / 19</div></div>
+  <div class="frame" style="padding-top:4vh">
+    <div class="kicker" data-anim>Intentional Asymmetry</div>
+    <h2 class="h-xl" style="font-size:4.5vw;margin-bottom:3vh" data-anim>玩家 vs 敌人</h2>
+    <div class="grid-2-6-6" style="gap:4vw">
+      <div data-anim="left" style="padding:2vh 2vw;border-left:3px solid currentColor;opacity:.65">
+        <div class="kicker" style="opacity:.9">Player Side</div>
+        <table class="matrix-table" style="margin-top:1.5vh"><tbody>
+          <tr><td style="font-weight:600">Hyper Armor</td><td>仅重击/大招前摇短窗</td></tr>
+          <tr><td style="font-weight:600">i-Frames</td><td>闪避中段 4-8 帧（窄）</td></tr>
+          <tr><td style="font-weight:600">Parry</td><td>主动开窗 5-10 帧</td></tr>
+          <tr><td style="font-weight:600">CC Immune</td><td>仅大招期间</td></tr>
+          <tr><td style="font-weight:600">Poise Pool</td><td>一般无（被打就硬直）</td></tr>
+        </tbody></table>
+      </div>
+      <div data-anim="right" style="padding:2vh 2vw;border-left:3px solid currentColor">
+        <div class="kicker" style="opacity:.9">Enemy Side</div>
+        <table class="matrix-table" style="margin-top:1.5vh"><tbody>
+          <tr><td style="font-weight:600">Hyper Armor</td><td>红光全程、阶段切换</td></tr>
+          <tr><td style="font-weight:600">i-Frames</td><td>仅阶段切换/位移技（更窄）</td></tr>
+          <tr><td style="font-weight:600">Parry</td><td>仅特定 Boss（反弹反机关）</td></tr>
+          <tr><td style="font-weight:600">CC Immune</td><td>头目常驻 / 破韧前</td></tr>
+          <tr><td style="font-weight:600">Poise Pool</td><td>必有（韧性条=输出窗）</td></tr>
+        </tbody></table>
+      </div>
+    </div>
+    <div class="callout" style="margin-top:3vh" data-anim>非对称是故意的——玩家学会"无敌帧很短，必须打准"，敌人学会"霸体很厚，必须找窗口"。框架让非对称可被显式书写、跨技能一致。</div>
+  </div>
+  <div class="foot"><div>Page 16 · Asymmetry</div><div>By Design</div></div>
+</section>
+
+<!-- P17: 诊断模板 dark -->
+<section class="slide dark">
+  <div class="chrome"><div>Diagnostic · Template</div><div>Act IV · 16 / 19</div></div>
+  <div class="frame" style="padding-top:4vh">
+    <div class="kicker" data-anim>Interaction Diagnostic</div>
+    <h2 class="h-xl" style="font-size:4.5vw;margin-bottom:3vh" data-anim>诊断模板</h2>
+    <p class="lead" style="margin-bottom:3vh" data-anim>任何手感争议都能被翻译成查表问题。</p>
+    <div style="overflow-x:auto" data-anim>
+      <table class="matrix-table"><thead><tr><th style="min-width:14vw">玩家疑问</th><th>设计师应查</th><th>调整旋钮</th></tr></thead><tbody>
+        <tr><td>"闪避按了还是被打"</td><td>i-Frame 起始帧 / 前摇是否含非 i-Frame 段</td><td>调整起始帧或加输入缓冲</td></tr>
+        <tr><td>"控制砸 Boss 没反应"</td><td>Boss 是否常驻 CC Immune</td><td>暴露"破韧后短暂可控"窗口</td></tr>
+        <tr><td>"弹反时机对了没触发"</td><td>攻击是否带 Unparriable 标签</td><td>红光视效明示</td></tr>
+        <tr><td>"重击吃了 Boss 一下"</td><td>Hyper Armor 是否覆盖到命中帧</td><td>延后退出帧或加碰撞优先级</td></tr>
+        <tr><td>"破韧后输出很爽"</td><td>破韧态独立 Hit Reaction + 倍率</td><td>独立 receive state + 伤害倍率</td></tr>
+      </tbody></table>
+    </div>
+  </div>
+  <div class="foot"><div>Page 17 · Diagnostic</div><div>Issue → Table Lookup</div></div>
+</section>
+
+<!-- P18: 混合制定位 light -->
+<section class="slide light">
+  <div class="chrome"><div>Closing · Design Intent</div><div>17 / 19</div></div>
+  <div class="frame" style="padding-top:4vh">
+    <div class="kicker" data-anim>Framework Positioning</div>
+    <h2 class="h-xl" style="font-size:4.5vw;margin-bottom:3vh" data-anim>混合制的定位</h2>
+    <div class="grid-4" style="gap:3vh 5vw">
+      <div class="pillar" data-anim><div class="ic"><i data-lucide="database"></i></div><div class="t">数值制的可扩展性</div><div class="d">Impact vs Mass 覆盖受击体系，不怕敌人种类多。</div></div>
+      <div class="pillar" data-anim><div class="ic"><i data-lucide="timer"></i></div><div class="t">帧数据制的精确性</div><div class="d">取消窗口覆盖技能衔接，策划对节奏有帧级控制。</div></div>
+      <div class="pillar" data-anim><div class="ic"><i data-lucide="tag"></i></div><div class="t">Tag 制的实现便利</div><div class="d">GAS 原生支持，GameplayTag + Cancel/Block 即可落地。</div></div>
+      <div class="pillar" data-anim><div class="ic"><i data-lucide="table-2"></i></div><div class="t">矩阵制的可审计性</div><div class="d">全局规则一目了然，策划与程序共享同一份文档。</div></div>
+    </div>
+    <div class="callout" style="margin-top:3vh" data-anim>没有"最优"方案，只有最适合项目阶段和团队结构的方案。团队 > 10 人需矩阵做共同语言；敌人 > 30 种需数值制；有 PvP 需帧数据。<div class="callout-src">— Design Philosophy</div></div>
+  </div>
+  <div class="foot"><div>Page 18 · Positioning</div><div>Hybrid</div></div>
+</section>
+
+<!-- P19: 收束 hero dark -->
+<section class="slide hero dark">
+  <div class="chrome"><div>Closing · Takeaway</div><div>18 / 19</div></div>
+  <div class="frame" style="display:grid;gap:5vh;align-content:center;min-height:80vh">
+    <div class="kicker" data-anim>The Takeaway</div>
+    <blockquote style="font-family:var(--serif-zh);font-weight:700;font-size:5.5vw;line-height:1.25;max-width:75vw">
+      <span data-anim style="display:block">"每一次手感争议，</span>
+      <span data-anim style="display:block">都应该能在一张表里</span>
+      <span data-anim style="display:block">找到它的行和列。"</span>
+    </blockquote>
+    <p class="lead" style="max-width:58vw;opacity:.7" data-anim>
+      分层让状态不互相打架，分类让权限有据可查，<br>数值让裁决可预期，矩阵让全局可审计。
+    </p>
+  </div>
+  <div class="foot"><div>战斗状态与优先级矩阵</div><div>— Fin —</div></div>
+</section>
+
+</div>
+<div id="nav"></div>
+
+<script>
+const VS=`attribute vec2 position;void main(){gl_Position=vec4(position,0.0,1.0);}`;
+const FS_DARK=`precision highp float;uniform vec2 u_resolution;uniform float u_time;uniform vec2 u_mouse;vec3 palette(float t,vec3 a,vec3 b,vec3 c,vec3 d){return a+b*cos(6.28318*(c*t+d));}void main(){vec2 uv=gl_FragCoord.xy/u_resolution.xy;vec2 p=uv*2.0-1.0;p.x*=u_resolution.x/u_resolution.y;vec2 m=u_mouse*2.0-1.0;m.x*=u_resolution.x/u_resolution.y;float md=length(p-m);float mr=sin(md*15.0-u_time*4.0)*exp(-md*3.0);p+=mr*0.08;vec2 p0=p;for(float i=1.0;i<4.0;i++){p.x+=0.1/i*sin(i*3.0*p.y+u_time*0.4)+0.05;p.y+=0.1/i*cos(i*2.0*p.x+u_time*0.3)-0.05;}float r=length(p);float ang=atan(p.y,p.x);vec3 a=vec3(0.12,0.12,0.13);vec3 b=vec3(0.03,0.04,0.05);vec3 c=vec3(1.0,1.0,1.0);vec3 d=vec3(0.1,0.2,0.4);vec3 col=palette(r*1.5+p0.x*0.5+u_time*0.1,a,b,c,d);float disp=sin(r*25.0-u_time*1.5+ang*2.0)*0.5+0.5;col+=vec3(disp*0.015,disp*0.01,disp*0.02);float hi=pow(sin(p.x*4.0+p.y*3.0+u_time)*0.5+0.5,8.0);col+=hi*0.08;vec3 base=vec3(0.05,0.05,0.06);col=mix(base,col,0.85);gl_FragColor=vec4(col,1.0);}`;
+const FS_LIGHT=`precision highp float;uniform vec2 u_resolution;uniform float u_time;uniform vec2 u_mouse;float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}float noise(vec2 p){vec2 i=floor(p),f=fract(p);float a=hash(i),b=hash(i+vec2(1,0));float c=hash(i+vec2(0,1)),d=hash(i+vec2(1,1));vec2 u=f*f*(3.0-2.0*f);return mix(a,b,u.x)+(c-a)*u.y*(1.0-u.x)+(d-b)*u.x*u.y;}float fbm(vec2 p){float v=0.0,a=0.5;mat2 m=mat2(0.80,0.60,-0.60,0.80);for(int i=0;i<5;i++){v+=a*noise(p);p=m*p*2.02;a*=0.5;}return v;}void main(){vec2 uv=gl_FragCoord.xy/u_resolution.xy;vec2 p=uv;p.x*=u_resolution.x/u_resolution.y;vec2 m=u_mouse;m.x*=u_resolution.x/u_resolution.y;vec2 md=p-m;float dl=length(md);p+=normalize(md+vec2(0.0001))*exp(-dl*5.0)*0.03;vec2 q=vec2(fbm(p*1.8+u_time*0.07),fbm(p*1.8+vec2(5.2,1.3)+u_time*0.06));vec2 r=vec2(fbm(p*2.0+q*1.3+vec2(1.7,9.2)+u_time*0.05),fbm(p*2.0+q*1.3+vec2(8.3,2.8)+u_time*0.04));float f=fbm(p*2.2+r*1.5);vec3 silverDark=vec3(0.86,0.85,0.84);vec3 paper=vec3(0.955,0.945,0.925);vec3 col=mix(silverDark,paper,f);float ph=r.x*2.2+u_time*0.35;col+=vec3(0.78,0.62,0.92)*sin(ph)*0.055;col+=vec3(0.55,0.72,0.95)*sin(ph*0.8+2.0)*0.05;float hl=smoothstep(0.48,0.92,f);col+=hl*0.06;gl_FragColor=vec4(col,1.0);}`;
+const mouse={x:0.5,y:0.5};addEventListener('mousemove',e=>{mouse.x=e.clientX/innerWidth;mouse.y=e.clientY/innerHeight});
+function bootGL(canvasId,fsSrc){const canvas=document.getElementById(canvasId);const gl=canvas.getContext('webgl',{alpha:false,antialias:true});if(!gl)return()=>false;const mk=(t,s)=>{const sh=gl.createShader(t);gl.shaderSource(sh,s);gl.compileShader(sh);return sh};const prog=gl.createProgram();gl.attachShader(prog,mk(gl.VERTEX_SHADER,VS));gl.attachShader(prog,mk(gl.FRAGMENT_SHADER,fsSrc));gl.linkProgram(prog);gl.useProgram(prog);const buf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buf);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),gl.STATIC_DRAW);const pos=gl.getAttribLocation(prog,'position');gl.enableVertexAttribArray(pos);gl.vertexAttribPointer(pos,2,gl.FLOAT,false,0,0);const lRes=gl.getUniformLocation(prog,'u_resolution');const lT=gl.getUniformLocation(prog,'u_time');const lM=gl.getUniformLocation(prog,'u_mouse');const resize=()=>{const d=Math.min(window.devicePixelRatio||1,2);canvas.width=innerWidth*d;canvas.height=innerHeight*d;gl.viewport(0,0,canvas.width,canvas.height)};addEventListener('resize',resize);resize();return(tSec)=>{gl.uniform2f(lRes,canvas.width,canvas.height);gl.uniform1f(lT,tSec);gl.uniform2f(lM,mouse.x,1-mouse.y);gl.drawArrays(gl.TRIANGLES,0,6);return true}}
+const drawDark=bootGL('bg-dark',FS_DARK);const drawLight=bootGL('bg-light',FS_LIGHT);const t0=Date.now();(function loop(){const t=(Date.now()-t0)/1000;drawDark(t);drawLight(t);requestAnimationFrame(loop)})();
+const deck=document.getElementById('deck');const slides=deck.querySelectorAll('.slide');const nav=document.getElementById('nav');let idx=0,total=slides.length,lock=false;deck.style.width=(total*100)+'vw';
+slides.forEach((s,i)=>{const b=document.createElement('button');b.className='dot';b.dataset.i=i;b.setAttribute('aria-label','Page '+(i+1));b.onclick=()=>go(i);nav.appendChild(b)});
+function go(n){if(lock)return;idx=Math.max(0,Math.min(total-1,n));deck.style.transform=`translateX(${-idx*100}vw)`;nav.querySelectorAll('.dot').forEach((d,i)=>d.classList.toggle('active',i===idx));const el=slides[idx];const th=el.dataset.theme||(el.classList.contains('light')?'light':(el.classList.contains('dark')?'dark':'dark'));document.body.classList.toggle('light-bg',th==='light');if(window.__playSlide)setTimeout(()=>window.__playSlide(idx),450);lock=true;setTimeout(()=>lock=false,700)}
+let overviewOn=false;const ov=document.createElement('div');ov.id='overview';ov.style.cssText='position:fixed;inset:0;z-index:100;background:rgba(var(--ink-rgb),.92);backdrop-filter:blur(12px);display:none;overflow-y:auto;padding:4vh 4vw';document.body.appendChild(ov);
+function buildOverview(){ov.innerHTML='';const grid=document.createElement('div');grid.style.cssText='display:grid;grid-template-columns:repeat(4,1fr);gap:2vh 1.6vw;max-width:90vw;margin:0 auto';slides.forEach((s,i)=>{const card=document.createElement('div');card.style.cssText='cursor:pointer;border-radius:6px;overflow:hidden;border:2px solid '+(i===idx?'rgba(var(--paper-rgb),.8)':'rgba(var(--paper-rgb),.15)')+';transition:border-color .2s';const wrap=document.createElement('div');wrap.style.cssText='width:100%;aspect-ratio:16/9;overflow:hidden;position:relative;pointer-events:none;background:'+(s.classList.contains('light')?'var(--paper)':'var(--ink)');const clone=s.cloneNode(true);clone.style.cssText='width:100vw;height:100vh;transform:scale('+(1/4.5)+');transform-origin:top left;position:absolute;top:0;left:0;pointer-events:none';wrap.appendChild(clone);const label=document.createElement('div');label.style.cssText='padding:6px 10px;font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--paper);opacity:.7';label.textContent=(i+1)+' / '+total;card.appendChild(wrap);card.appendChild(label);card.onclick=()=>{toggleOverview();go(i)};grid.appendChild(card)});ov.appendChild(grid)}
+function toggleOverview(){overviewOn=!overviewOn;if(overviewOn){buildOverview();ov.style.display='block'}else{ov.style.display='none'}}
+addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();toggleOverview();return}if(overviewOn)return;if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' '||e.key==='ArrowDown'){if(window.__pipeAdvance&&window.__pipeAdvance())return;go(idx+1);return}if(e.key==='ArrowLeft'||e.key==='PageUp'||e.key==='ArrowUp')go(idx-1);if(e.key==='Home')go(0);if(e.key==='End')go(total-1)});
+let wheelTO=null,wheelAcc=0;addEventListener('wheel',e=>{wheelAcc+=e.deltaY+e.deltaX;if(Math.abs(wheelAcc)>50){if(wheelAcc>0&&window.__pipeAdvance&&window.__pipeAdvance()){wheelAcc=0}else{go(idx+(wheelAcc>0?1:-1));wheelAcc=0}}clearTimeout(wheelTO);wheelTO=setTimeout(()=>wheelAcc=0,150)},{passive:true});
+let tx=0,ty=0;addEventListener('touchstart',e=>{tx=e.touches[0].clientX;ty=e.touches[0].clientY},{passive:true});addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-tx;const dy=e.changedTouches[0].clientY-ty;if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)){if(dx<0&&window.__pipeAdvance&&window.__pipeAdvance())return;go(idx+(dx<0?1:-1))}},{passive:true});
+go(0);
+</script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script>lucide.createIcons();</script>
+<script type="module">
+let motion;try{motion=await import('https://cdn.jsdelivr.net/npm/motion@11.11.17/+esm')}catch(e){document.querySelectorAll('[data-anim]').forEach(el=>{el.style.opacity='1';el.style.transform='none'});document.querySelectorAll('[data-animate="pipeline"] [data-anim]').forEach(el=>el.style.opacity='1')}
+if(motion){const{animate,stagger}=motion;const EASE=[.22,1,.36,1];const slides=[...document.querySelectorAll('.slide')];let pipeStep=-1;let lastIdx=-1;
+function resetAnims(slide){slide.querySelectorAll('[data-anim]').forEach(el=>{el.style.opacity='';el.style.transform=''})}
+function playSlide(i){const slide=slides[i];if(!slide)return;lastIdx=i;const recipe=slide.dataset.animate||(slide.classList.contains('hero')?'hero':'cascade');if(recipe==='pipeline'){pipeStep=-1;slide.querySelectorAll('[data-anim]').forEach(el=>{el.style.opacity='0.15';el.style.transform='none'});return}resetAnims(slide);const all=[...slide.querySelectorAll('[data-anim]')];if(!all.length)return;if(recipe==='directional'){const lefts=all.filter(el=>el.dataset.anim==='left');const rights=all.filter(el=>el.dataset.anim==='right');const others=all.filter(el=>!['left','right','divider'].includes(el.dataset.anim));if(others.length)animate(others,{opacity:[0,1],y:[12,0]},{duration:.6,delay:stagger(.1,{start:.15}),easing:EASE});if(lefts.length)animate(lefts,{opacity:[0,1],x:[-24,0]},{duration:.8,delay:.35,easing:EASE});if(rights.length)animate(rights,{opacity:[0,1],x:[24,0]},{duration:.8,delay:stagger(.12,{start:1.0}),easing:EASE});return}if(recipe==='quote'){const lines=all.filter(el=>el.dataset.anim==='line');const others=all.filter(el=>el.dataset.anim!=='line');if(others.length)animate(others,{opacity:[0,1],y:[8,0]},{duration:.6,delay:stagger(.12,{start:.2}),easing:EASE});if(lines.length)animate(lines,{opacity:[.35,1],y:[10,0]},{duration:.8,delay:stagger(.55,{start:.5}),easing:EASE});return}if(recipe==='hero'){animate(all,{opacity:[0,1],y:[14,0]},{duration:.9,delay:stagger(.16,{start:.2}),easing:EASE});return}animate(all,{opacity:[0,1],y:[16,0]},{duration:.75,delay:stagger(.1,{start:.15}),easing:EASE})}
+function pipeAdvance(){const slide=slides[lastIdx];if(!slide||slide.dataset.animate!=='pipeline')return false;const steps=[...slide.querySelectorAll('[data-anim="step"]')];if(pipeStep>=steps.length-1)return false;pipeStep++;animate(steps[pipeStep],{opacity:[0.15,1],y:[8,0]},{duration:.5,easing:EASE});return true}
+window.__playSlide=playSlide;window.__pipeAdvance=pipeAdvance;playSlide(0)}
+</script>
+</body>
+</html>
