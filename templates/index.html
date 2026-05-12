@@ -1134,6 +1134,7 @@
     .game-cover img { width: 100%; height: 100%; object-fit: cover; }
     .game-goty-badge {
       position: absolute;
+      z-index: 2;
       top: 0.5rem;
       left: 0.5rem;
       display: inline-flex;
@@ -1834,6 +1835,9 @@
     }
     .sidebar-avatar,
     .thumb,
+    .article-thumb,
+    .feat-thumb,
+    .game-cover,
     .trinket-img-wrap,
     .detail-img-wrap {
       position: relative;
@@ -1841,6 +1845,9 @@
     }
     .sidebar-avatar::before,
     .thumb::before,
+    .article-thumb::before,
+    .feat-thumb::before,
+    .game-cover::before,
     .trinket-img-wrap::before,
     .detail-img-wrap::before {
       content: '';
@@ -1854,12 +1861,18 @@
     }
     .sidebar-avatar.img-ready::before,
     .thumb.img-ready::before,
+    .article-thumb.img-ready::before,
+    .feat-thumb.img-ready::before,
+    .game-cover.img-ready::before,
     .trinket-img-wrap.img-ready::before,
     .detail-img-wrap.img-ready::before {
       opacity: 0;
       transition: opacity 0.3s ease;
     }
     .thumb img,
+    .article-thumb img,
+    .feat-thumb img,
+    .game-cover img,
     .trinket-img-wrap img,
     .detail-img-wrap img {
       position: relative;
@@ -3524,7 +3537,7 @@
     });
 
     // ===== GLOBAL IMAGE FADE-IN ON LOAD =====
-    const IMG_WRAP_SEL = '.thumb, .trinket-img-wrap, .detail-img-wrap, .sidebar-avatar, .exp-logo';
+    const IMG_WRAP_SEL = '.thumb, .article-thumb, .feat-thumb, .game-cover, .trinket-img-wrap, .detail-img-wrap, .sidebar-avatar, .exp-logo';
     function initImageFadeIn(scope) {
       const root = scope || document.body;
       root.querySelectorAll('img').forEach(img => {

@@ -47,6 +47,7 @@ Priority order for sourcing a clean product image:
 - 800×800px preferred (square aspect ratio)
 - Transparent background PNG
 - Product clearly visible, not cropped
+- **Clean product-only shot** — no text overlays, spec callouts, labels, logos, or lifestyle/scene elements; the image should contain only the device against a plain background
 
 ### Step 3: Process Image (Remove Background)
 
@@ -99,7 +100,7 @@ node skills/add-trinket/scripts/remove-bg.js <input> <output> [threshold]
 
 ### Step 4: Add YAML Entry
 
-Append to `content/data/trinkets.yml` under the `trinkets:` list:
+**Prepend** as the first entry under `trinkets:` in `content/data/trinkets.yml` — trinkets are ordered newest-first. The homepage automatically previews the first 3 items, so the new trinket will appear there immediately.
 
 ```yaml
   - brand: "Brand Name"
@@ -116,15 +117,7 @@ Append to `content/data/trinkets.yml` under the `trinkets:` list:
 - Wrap `description` in double quotes
 - Wrap `name` in double quotes if it contains special characters
 
-### Step 5: Update Home Preview (Optional)
-
-If the trinket should appear on the homepage preview, update `home_preview_indices` in `content/data/trinkets.yml`:
-
-```yaml
-home_preview_indices: [0, 3, 4]  # indices into the trinkets array
-```
-
-### Step 6: Build and Verify
+### Step 5: Build and Verify
 
 ```bash
 npm run build    # Rebuild static site

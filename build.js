@@ -169,7 +169,7 @@ function genArticleCard(a, idx) {
   const thumbInner = a.cover
     ? `<img src="${a.cover}" alt="${a.title}" loading="lazy" onerror="this.remove();this.parentElement.classList.add('placeholder-blog-${idx + 1}')">`
     : '';
-  const thumbClass = a.cover ? 'article-thumb' : `article-thumb placeholder-blog-${idx + 1}`;
+  const thumbClass = a.cover ? 'article-thumb' : `article-thumb img-ready placeholder-blog-${idx + 1}`;
   return `<a href="#" data-detail="${slug}" class="article-card" data-category="${cats}">
                 <div class="${thumbClass}">${thumbInner}</div>
                 <div class="article-body">
@@ -188,8 +188,9 @@ function genFeaturedArticle(a) {
   const thumbInner = a.cover
     ? `<img src="${a.cover}" alt="${a.title}" loading="lazy" onerror="this.remove()">`
     : '';
+  const featThumbClass = a.cover ? 'feat-thumb' : 'feat-thumb img-ready';
   return `<a href="#" data-detail="${slug}" class="featured-article">
-              <div class="feat-thumb">${thumbInner}</div>
+              <div class="${featThumbClass}">${thumbInner}</div>
               <div class="feat-body">
                 <h3>${a.title}</h3>
                 <p>${a.excerpt || ''}</p>
@@ -597,9 +598,8 @@ function build() {
     `$1\n              ${trinketsGridHtml}\n            </div>\n          </section>\n        </div>\n\n\n        <div id="project-`
   );
 
-  // ── Home trinkets preview ──
-  const previewIndices = trinketsData.home_preview_indices || [0, 3, 4];
-  const homeTrinketsHtml = previewIndices.map(i => genTrinketCard(trinkets[i], i)).join('\n                ');
+  // ── Home trinkets preview — first 3 items (newest first) ──
+  const homeTrinketsHtml = trinkets.slice(0, 3).map((t, i) => genTrinketCard(t, i)).join('\n                ');
   html = html.replace(
     /(<div class="trinkets-grid">)[\s\S]*?(<\/div>\s*<\/section>\s*<\/div>\s*<!-- ===== PROJECTS)/,
     `$1\n                ${homeTrinketsHtml}\n              </div>\n          </section>\n        </div>\n\n        <!-- ===== PROJECTS`
