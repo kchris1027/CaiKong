@@ -101,7 +101,51 @@ static/images/<same-kebab-name>-thumb.svg
 
 Use local thumbnail paths for research projects when possible. Existing product projects can use hosted `https://img.kongcai.cc/...` thumbnails.
 
-### Step 5: Attach Media
+### Step 5: Generate Thumbnail from HTML (HTML Projects Only)
+
+If the project includes an HTML file in `static/html/`, **prioritize taking a Playwright screenshot of the hero section** (first viewport) as the thumbnail instead of manually sourcing one.
+
+**Default — Playwright CLI (PowerShell):**
+
+```powershell
+# Replace <name> with the kebab slug
+$html = (Resolve-Path "static/html/<name>.html").Path
+npx playwright screenshot --browser chromium --viewport-size=1280,720 "file:///$html" "static/images/<name>-thumb.png"
+```
+
+If the page has a loading animation or deferred render, add `--wait-for-timeout`:
+
+```powershell
+npx playwright screenshot --browser chromium --viewport-size=1280,720 --wait-for-timeout=2000 "file:///$html" "static/images/<name>-thumb.png"
+```
+
+**Alternative — inline Node script (if CLI fails on file:// paths):**
+
+```js
+// run once: node screenshot.mjs
+import { chromium } from 'playwright';
+import { resolve } from 'path';
+
+const name = '<name>'; // ← set slug
+const browser = await chromium.launch();
+const page = await browser.newPage();
+await page.setViewportSize({ width: 1280, height: 720 });
+await page.goto(`file:///${resolve(`static/html/${name}.html`)}`);
+await page.screenshot({ path: `static/images/${name}-thumb.png` });
+await browser.close();
+```
+
+**Post-screenshot checklist:**
+- Open the PNG and confirm the hero is fully visible and not cropped awkwardly. Adjust `--viewport-size` height (640 / 720 / 800) to match the visual weight of the hero.
+- Set the screenshot path as `thumbnail` in frontmatter:
+
+  ```yaml
+  thumbnail: "static/images/<name>-thumb.png"
+  ```
+
+- Only fall back to a hand-crafted thumbnail when the HTML hero is mostly blank, canvas-only, or requires user interaction before it renders meaningfully.
+
+### Step 6: Attach Media
 
 For an interactive HTML document, copy or create the HTML under `static/html/`, then add:
 
@@ -123,7 +167,7 @@ media:
   - { type: "video", url: "static/video/example.mp4" }
 ```
 
-### Step 6: Build and Verify
+### Step 7: Build and Verify
 
 Run:
 
@@ -142,7 +186,7 @@ Then verify:
 $env:PORT='3001'; npm run dev
 ```
 
-### Step 7: Commit Scope
+### Step 8: Commit Scope
 
 When committing an added project, stage only the relevant files unless the user asks for all changes:
 
