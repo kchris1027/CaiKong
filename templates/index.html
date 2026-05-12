@@ -1229,45 +1229,20 @@
     }
     .detail-html-wrap.html-loaded iframe { opacity: 1; }
 
-    /* Iframe loading overlay */
+    /* Iframe loading overlay — pure skeleton shimmer, same as image cards */
     .detail-html-wrap::before {
       content: '';
       position: absolute;
       inset: 0;
       z-index: 2;
-      background: var(--BackgroundSecondary);
-      background-image: linear-gradient(100deg, transparent 30%, rgba(128,128,128,0.08) 50%, transparent 70%);
+      background-color: var(--BackgroundTertiary);
+      background-image: linear-gradient(100deg, transparent 30%, rgba(128,128,128,0.15) 50%, transparent 70%);
       background-size: 200% 100%;
-      animation: skeletonShimmer 1.8s ease-in-out infinite;
+      animation: skeletonShimmer 1.5s ease-in-out infinite;
       transition: opacity 0.5s ease;
       pointer-events: none;
     }
-    .detail-html-wrap.html-loaded::before { opacity: 0; }
-
-    /* Iframe loading indicator */
-    @keyframes htmlLoadPulse {
-      0%, 100% { opacity: 0.4; transform: translate(-50%, -50%) scale(1); }
-      50% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
-    }
-    .detail-html-wrap::after {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      z-index: 3;
-      width: 2.5rem;
-      height: 2.5rem;
-      border: 2px solid var(--ForegroundTertiary);
-      border-top-color: transparent;
-      border-radius: 50%;
-      animation: htmlLoadSpin 0.8s linear infinite;
-      transition: opacity 0.4s ease;
-      pointer-events: none;
-    }
-    @keyframes htmlLoadSpin {
-      to { transform: translate(-50%, -50%) rotate(360deg); }
-    }
-    .detail-html-wrap.html-loaded::after { opacity: 0; }
+    .detail-html-wrap.html-loaded::before { opacity: 0; transition: opacity 0.5s ease; }
     .detail-html-fullscreen-btn {
       position: absolute;
       top: 0.625rem;
@@ -3972,7 +3947,24 @@
     })();
 
     // ── Embedded HTML Loading State ──
+    // Wait for two rAF cycles inside the iframe after load to ensure WebGL/canvas
+    // has rendered at least one frame before removing the skeleton overlay.
     (function() {
+      function markLoaded(wrap) {
+        wrap.classList.add('html-loaded');
+      }
+      function waitForPaint(iframe, wrap) {
+        var iw = iframe.contentWindow;
+        if (iw && iw.requestAnimationFrame) {
+          iw.requestAnimationFrame(function() {
+            iw.requestAnimationFrame(function() {
+              markLoaded(wrap);
+            });
+          });
+        } else {
+          setTimeout(function() { markLoaded(wrap); }, 300);
+        }
+      }
       function bindIframeLoad(root) {
         root.querySelectorAll('.detail-html-wrap').forEach(function(wrap) {
           if (wrap._loadBound) return;
@@ -3980,10 +3972,10 @@
           var iframe = wrap.querySelector('iframe');
           if (!iframe) return;
           iframe.addEventListener('load', function() {
-            wrap.classList.add('html-loaded');
+            waitForPaint(iframe, wrap);
           });
           if (iframe.contentDocument && iframe.contentDocument.readyState === 'complete') {
-            wrap.classList.add('html-loaded');
+            waitForPaint(iframe, wrap);
           }
         });
       }
