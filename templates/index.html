@@ -3517,19 +3517,28 @@
       const root = scope || document.body;
       root.querySelectorAll('img').forEach(img => {
         if (img.classList.contains('img-loaded')) return;
-        const markLoaded = () => {
-          if (img.classList.contains('img-loaded')) return;
+        const applyLoaded = () => {
           img.classList.add('img-loaded');
           const wrap = img.closest(IMG_WRAP_SEL);
           if (wrap) wrap.classList.add('img-ready');
         };
+        const markLoaded = () => {
+          if (img.classList.contains('img-loaded')) return;
+          // Use decode() to ensure full pixel decode before fade-in,
+          // preventing progressive JPEG top-to-bottom rendering artifact.
+          if (img.decode) {
+            img.decode().then(applyLoaded).catch(applyLoaded);
+          } else {
+            applyLoaded();
+          }
+        };
         img.addEventListener('load', markLoaded, { once: true });
-        img.addEventListener('error', markLoaded, { once: true });
-        if (img.complete) {
+        img.addEventListener('error', applyLoaded, { once: true });
+        if (img.complete && img.naturalWidth) {
           markLoaded();
-        } else {
+        } else if (!img.complete) {
           setTimeout(() => {
-            if (!img.classList.contains('img-loaded')) markLoaded();
+            if (!img.classList.contains('img-loaded')) applyLoaded();
           }, 5000);
         }
       });
@@ -3965,6 +3974,17 @@
           setTimeout(function() { markLoaded(wrap); }, 300);
         }
       }
+      function isReallyLoaded(iframe) {
+        // Browsers create an initial about:blank document for every iframe
+        // whose readyState is already 'complete'. Only treat it as loaded
+        // when the document URL matches the iframe's actual src.
+        try {
+          var doc = iframe.contentDocument;
+          if (!doc || doc.readyState !== 'complete') return false;
+          var url = doc.URL;
+          return url && url !== 'about:blank' && url !== 'about:srcdoc';
+        } catch(e) { return false; }
+      }
       function bindIframeLoad(root) {
         root.querySelectorAll('.detail-html-wrap').forEach(function(wrap) {
           if (wrap._loadBound) return;
@@ -3974,7 +3994,7 @@
           iframe.addEventListener('load', function() {
             waitForPaint(iframe, wrap);
           });
-          if (iframe.contentDocument && iframe.contentDocument.readyState === 'complete') {
+          if (isReallyLoaded(iframe)) {
             waitForPaint(iframe, wrap);
           }
         });
